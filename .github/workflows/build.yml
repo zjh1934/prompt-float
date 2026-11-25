@@ -1,0 +1,75 @@
+name: 编译并发布 Release
+
+# 只用 GitHub Actions 内置的 GITHUB_TOKEN，不需要个人 PAT。
+# 若确需 PAT，放 Settings -> Secrets，绝不写进仓库文件。
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      make_release:
+        description: '是否同时发布 Release（挂 APK）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # 仓库里不提交二进制 gradle-wrapper.jar，CI 现场生成
+      - name: 生成 Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.7 --distribution-type bin
+          chmod +x gradlew
+
+      - name: 编译 Debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: 整理产物
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk citie.apk
+          ls -lh citie.apk
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: citie-apk
+          path: citie.apk
+          if-no-files-found: error
+
+      # 打 tag 或手动勾选时，把 APK 挂到 Releases —— 下载工具靠这个识别安装包
+      - name: 发布 Release（含 APK）
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.make_release == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [ "$TAG" = "main" ] || [ "$TAG" = "master" ]; then
+            TAG="v0.1.0"
+          fi
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" citie.apk \
+            --title "词贴 $TAG" \
+            --notes "自动构建。下载 citie.apk 安装后，请在系统设置里开启「词贴」无障碍服务。详见仓库 README。" \
+            --latest

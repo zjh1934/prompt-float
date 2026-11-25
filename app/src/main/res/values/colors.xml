@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#FF3F6FE0</color>
+    <color name="brand_dark">#FF2A50B8</color>
+    <color name="brand_soft">#FFE8EFFF</color>
+    <color name="ok_green">#FF1E8E5A</color>
+    <color name="warn_bg">#FFFFF3E0</color>
+    <color name="panel_bg">#F4FFFFFF</color>
+    <color name="panel_stroke">#33445566</color>
+    <color name="chip_bg">#FFFFFFFF</color>
+    <color name="text_main">#FF1B1B1F</color>
+    <color name="text_sub">#FF5A5A66</color>
+    <color name="danger">#FFD23F3F</color>
+    <color name="divider">#FFE4E6EC</color>
+</resources>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingLeft="14dp"
+    android:paddingTop="12dp"
+    android:paddingRight="6dp"
+    android:paddingBottom="12dp">
+
+    <!-- 左侧色条：一眼区分条目，也给「可排序」一个视觉锚点 -->
+    <View
+        android:id="@+id/itemStripe"
+        android:layout_width="3dp"
+        android:layout_height="34dp"
+        android:background="@color/brand" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/itemTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/itemPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/text_sub"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 四个挤在一起的按钮收进一个 ⋮，手机上不误触、层级也干净 -->
+    <TextView
+        android:id="@+id/itemMore"
+        android:layout_width="40dp"
+        android:layout_height="44dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:gravity="center"
+        android:text="@string/more"
+        android:textColor="@color/text_sub"
+        android:textSize="22sp" />
+</LinearLayout>
