@@ -3,6 +3,37 @@
 版本号遵循语义化版本；**每次出包升一个小版本**（patch +1），约定见
 [project/版本与发布.md](project/版本与发布.md)。
 
+## v0.1.3（2026-11-25）
+
+**球 ↔ 框重做（真机截图反馈，按设计判断改过三处）**
+
+- **球长大成框，不再球框并存**：同一个 `FrameLayout` 容器用 `ValueAnimator` 逐帧插值
+  宽 / 高 / 位置 / `GradientDrawable` 圆角，球文字淡出、chips 淡入；展开时球 View 立刻
+  `INVISIBLE`，收起反向缩回球。
+- **时长 220ms（收起 180ms）**，不是用户提的「1 秒左右」——瞬时操作拖到 1 秒只会觉得卡。
+- **删掉全部装饰**：标题「预设提示词」、蓝色竖条、`收起 ✕`、底部「点一条即插入 · 左右滑动看更多」。
+  面板里只剩一排 chip。「可横滑」改由 `requiresFadingEdge` 右侧渐隐 + 被裁半颗的 chip 暗示。
+- **✕ 删了但补上收起方式**：点框内任意空白处缩回球、点某条即插入并收起。
+  **刻意不做「点框外收起」** —— 那需要全屏触摸层 / `FLAG_WATCH_OUTSIDE_TOUCH`，会吃掉用户
+  点输入框的那一下，跟「不跟输入法抢」冲突。浮窗现在显式加 `FLAG_NOT_TOUCH_MODAL`，
+  框外触摸穿透给输入框与键盘。
+- **长按 chip → 就地预览全文**（不是弹窗）：同一个框长大成可上下滚动的预览态，
+  点全文即插入、点空白即收起。弹窗要抢焦点或额外权限，跟核心冲突，故不采纳。
+  `ScrollView` 给有界高度，长提示词在框内滚动而不是把框撑满屏。
+- **宽度按内容自适应**：用 `Paint.measureText` 估算 chips 总宽，一条时是刚好的小框，
+  多条才变宽，clamp 到屏宽-32dp；不再固定满屏宽留一大片空白。
+- **主动发现并修**：主页面顶部和底部各有一个 `⋯`，删掉顶部，工具菜单统一走底部一个入口。
+- `computePanelY()` 改用实际目标高度（含预览态），不再写死 150dp。
+- 动画回调加身份判断，防止 `ValueAnimator.cancel()` 触发旧 `onEnd` 导致重复移除 / 递归。
+
+**日志**
+- 新增 `PANEL morph expand` / `morph collapse(reason=…)` / `preview open` / `长按第 N 条` 埋点，
+  reason 含 `chip-tap` / `tap-blank` / `preview-tap` / `settings-refresh`，贴日志可验证交互路径。
+
+**工程**
+- `versionCode` 3 → 4，`versionName` 0.1.2 → 0.1.3；签名与包名不变 → **v0.1.2 可直接覆盖装**
+- 删除不再引用的 `bg_ball_active.xml`；`docs/preview/ui_review_v4.png` 四态预览
+
 ## v0.1.2（2026-11-25）
 
 **安装包命名（用户反馈：下载器里 `app-debug.apk` 太多，分不清谁是谁）**

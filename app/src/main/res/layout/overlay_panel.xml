@@ -1,65 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/panelRoot"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/bg_panel"
-    android:elevation="8dp"
-    android:orientation="vertical">
+<!-- 球 ↔ 框是同一个 View。
+     展开时这个容器以球的 56dp 圆形为起点，用 ValueAnimator 把宽/高/圆角/位置
+     插值到目标尺寸（代码里逐帧改 WindowManager.LayoutParams + GradientDrawable.cornerRadius）。
+     球文字淡出、chips 淡入 —— 视觉上就是「球长大成了框」，二者从不同框并存。
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+     刻意没有：标题、蓝色竖条、收起 ✕、任何解释性文字。
+     收起 = 点框内任意空白处；点某条 chip = 插入并收起。
+     可滑动的暗示由 requiresFadingEdge 的右侧渐隐 + 被裁掉半颗的 chip 提供，不靠文字。 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/morphRoot"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:clickable="true"
+    android:focusable="false">
 
-        <!-- 小竖条：把面板和悬浮球在视觉上锚在一起 -->
-        <View
-            android:layout_width="3dp"
-            android:layout_height="16dp"
-            android:background="@color/brand" />
-
-        <TextView
-            android:id="@+id/panelTitle"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="8dp"
-            android:layout_weight="1"
-            android:text="@string/panel_title"
-            android:textColor="@color/text_main"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/panelClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_chip"
-            android:text="@string/panel_close"
-            android:textColor="@color/brand"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:fillViewport="false"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/chipContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
-
+    <!-- 球的形态：展开动画里淡出 -->
     <TextView
-        android:id="@+id/panelHint"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/panel_hint"
-        android:textColor="@color/text_sub"
-        android:textSize="11sp" />
-</LinearLayout>
+        android:id="@+id/morphBallLabel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="@string/ball_label"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <!-- 框的内容：展开动画里淡入；列表态与预览态在这一个容器里切换 -->
+    <FrameLayout
+        android:id="@+id/contentRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:padding="10dp">
+
+        <HorizontalScrollView
+            android:id="@+id/chipRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="false"
+            android:fadingEdgeLength="24dp"
+            android:requiresFadingEdge="horizontal"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/chipContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- 长按 chip 后原地显示全文；点全文 = 插入，点空白 = 收起 -->
+        <ScrollView
+            android:id="@+id/previewBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="false"
+            android:scrollbars="none"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/previewText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingMultiplier="1.3"
+                android:textColor="@color/text_main"
+                android:textSize="13sp" />
+        </ScrollView>
+    </FrameLayout>
+</FrameLayout>

@@ -82,7 +82,6 @@ class MainActivity : Activity() {
             showEditDialog(null)
         }
         findViewById<Button>(R.id.btnLog).setOnClickListener { exportDevLog() }
-        findViewById<TextView>(R.id.btnMore).setOnClickListener { showToolsMenu() }
         findViewById<Button>(R.id.btnBackup).setOnClickListener { showToolsMenu() }
     }
 

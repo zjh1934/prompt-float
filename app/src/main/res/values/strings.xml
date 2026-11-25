@@ -30,10 +30,9 @@
     <string name="about_text">词贴 · 不换输入法，点一下把预设提示词贴进当前输入框。\n\nMIT 开源，零第三方依赖，不联网、不记录输入内容。\n\n仓库：github.com/zjh1934/prompt-float</string>
 
     <string name="ball_label">词</string>
-    <string name="panel_title">预设提示词</string>
-    <string name="panel_close">收起 ✕</string>
-    <string name="panel_hint">点一条即插入 · 左右滑动看更多</string>
-    <string name="panel_empty">还没有提示词，去主页面新增</string>
+    <!-- 面板里刻意不保留任何说明文字：标题、收起 ✕、用法提示全部删掉。
+         可滑动靠右侧渐隐边缘暗示；收起点框内空白；长按 chip 看全文。 -->
+    <string name="panel_empty">还没有提示词，先去主页面新增</string>
 
     <string name="dlg_title_new">新增提示词</string>
     <string name="dlg_title_edit">编辑提示词</string>

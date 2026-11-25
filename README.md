@@ -7,19 +7,19 @@
 
   ![license](https://img.shields.io/badge/license-MIT-blue)
   ![platform](https://img.shields.io/badge/Android-8.0%2B-green)
-  ![version](https://img.shields.io/badge/version-v0.1.2-blueviolet)
+  ![version](https://img.shields.io/badge/version-v0.1.3-blueviolet)
   ![deps](https://img.shields.io/badge/第三方依赖-0-orange)
   ![permissions](https://img.shields.io/badge/uses--permission-0-brightgreen)
 
 </div>
 
-一个**不是输入法**的安卓小工具。平时是屏幕上一个可拖动的小球，点一下展开成一条提示词面板；
-点其中一条，就把这段预设提示词插进**当前正在输入的那个输入框**——AI 对话、微信、浏览器、
-笔记……任何有输入框的地方。**你的输入法一个字都不用换。**
+一个**不是输入法**的安卓小工具。平时是屏幕上一个可拖动的小球，点一下**球长大成框**（220ms），
+框里只有一排提示词；点其中一条，就把这段预设提示词插进**当前正在输入的那个输入框**——
+AI 对话、微信、浏览器、笔记……任何有输入框的地方。**你的输入法一个字都不用换。**
 
 <div align="center">
-  <img src="docs/preview/ui_review_v3.png" width="100%" alt="极简主页面 / 悬浮球 / 展开面板" />
-  <br /><sub>极简界面（v0.1.1 起）：一行状态、提示词列表、底部三个动作，无品牌头、无冗余说明</sub>
+  <img src="docs/preview/ui_review_v4.png" width="100%" alt="球 / 展开中间帧 / 自适应的框 / 长按预览全文" />
+  <br /><sub>球 → 长大成框 → 长按看全文。没有标题、没有 ✕、没有一行解释文字</sub>
 </div>
 
 ---
@@ -33,7 +33,7 @@ https://github.com/zjh1934/prompt-float/releases.atom
 ```
 
 > ⚠️ 说清楚边界：GitHub 原生的 `releases.atom` **只有版本通知条目，不带 APK 附件**
-> （feed 里没有 `<enclosure>`）。也就是说订阅后你会收到「词贴 v0.1.2 发布了」，
+> （feed 里没有 `<enclosure>`）。也就是说订阅后你会收到「词贴 v0.1.3 发布了」，
 > 但**点进去还得自己下安装包**，它不会自动把 APK 抓下来装。
 > 如果你的工具是要从 feed 里直接解析安装包，需要另做一个带 enclosure 的 feed，
 > 开 issue 说一声我加。
@@ -57,7 +57,7 @@ https://github.com/zjh1934/prompt-float/releases
 **软件名 + v版本号 + `.apk`**，例如：
 
 ```
-Citie-v0.1.2.apk
+Citie-v0.1.3.apk
 ```
 
 > ⚠️ 有个平台限制得说清楚：我试过直接叫 **`词贴-v0.1.2.apk`**，但
@@ -77,7 +77,7 @@ Citie-v0.1.2.apk
 > ⚠️ **一次例外**：`v0.1.0` 是加固定签名之前发布的旧随机签名包，
 > **`v0.1.0 → v0.1.1` 这一跳仍需卸载一次**（旧密钥已随 CI runner 销毁，无法补救）。
 > 从 **v0.1.1 往后**所有版本共用同一把签名，永久直接覆盖安装，提示词与授权都保留。
-> 没装过 v0.1.0 的话，直接装最新版 `Citie-v0.1.2.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
+> 没装过 v0.1.0 的话，直接装最新版 `Citie-v0.1.3.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
@@ -89,7 +89,23 @@ Citie-v0.1.2.apk
 13 起开启时会有醒目安全提示。
 
 然后：在「提示词」里 ＋ 新增 → 打开任意 AI 对话点一下输入框 → 点悬浮球 → 点一条 → 文字进框。
-小球可拖动贴边，球在下半屏时面板会自动翻到上方，不会被键盘吃掉。
+
+**交互（v0.1.3）**
+
+| 操作 | 结果 |
+|---|---|
+| 点球 | 球 220ms 长大成框，框里只有一排提示词 |
+| 点一条 | 插入输入框，框缩回球 |
+| **长按一条** | **同一个框就地变成预览态，显示这一条的全文**（可上下滚动）；点全文即插入，点空白即收起 |
+| 点框内空白 | 框缩回球 |
+| 拖球 | 移动，松手贴边；球不会被拖到键盘区 |
+
+刻意没有 ✕ 按钮、没有标题、没有「点一条即插入 / 左右滑动看更多」这类说明文字。
+「可以横滑」由右侧渐隐边缘 + 被裁掉半颗的 chip 暗示。
+
+> ⚠️ **点框外不会收起面板**，这是刻意的：浮窗带 `FLAG_NOT_FOCUSABLE + FLAG_NOT_TOUCH_MODAL`，
+> 框外的触摸要**穿透给输入框和键盘**，否则你想点输入框移一下光标就会被吃掉。
+> 想收起就点框内空白处（框很大，很好点）或直接点一条。
 
 > 边界：**只填，不发**。不替你点发送、不读输入内容、不联网、无账号、无统计、无广告。
 > App 里**零 `uses-permission`**，连「显示在其他应用上层」都不用申请。
@@ -170,7 +186,7 @@ cd prompt-float
 gradle wrapper --gradle-version 8.7 --distribution-type bin
 ./gradlew :app:assembleDebug
 # Gradle 原生产物：app/build/outputs/apk/debug/app-debug.apk
-# 发布到 Releases 时 CI 会改名成：Citie-v0.1.2.apk（软件名拉丁化 + v版本号）
+# 发布到 Releases 时 CI 会改名成：Citie-v0.1.3.apk（软件名拉丁化 + v版本号）
 ```
 
 Android Studio（Giraffe+）直接打开根目录也可以。CI 用内置 `GITHUB_TOKEN` 即可，
