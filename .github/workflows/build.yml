@@ -29,8 +29,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
+      # ubuntu-latest 镜像自带 Android SDK。刻意不用第三方 setup-android action：
+      # 它要去下载 cmdline-tools，是这一步最容易在 CI 上失败的地方。
+      - name: 检查 Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          echo "SDK=$SDK"
+          ls "$SDK/platforms" | tail -5
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" >/dev/null 2>&1 || true
+          ls "$SDK/platforms" | tail -5
 
       - name: Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
