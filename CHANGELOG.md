@@ -29,7 +29,9 @@
 **固定包名与签名（免卸载重装）**
 - 包名 `com.yuanbao.promptfloat` 永久固定，**没改**（改了反而更得卸载）
 - 真正让覆盖安装失败的是 CI 每次随机生成 debug 签名 → 现在把一把**公开的开发签名**
-  `app/debug.keystore` 入库，debug / release 构建共用，可直接覆盖 v0.1.0 安装
+  `app/debug.keystore` 入库，debug / release 构建共用
+- ⚠️ **一次性代价**：v0.1.0 是旧随机签名包且密钥已随 runner 销毁，
+  `v0.1.0 → v0.1.1` 仍需卸载一次；**从 v0.1.1 起往后永久免卸载**
 - CI 增加签名 SHA-256 校验打印
 
 **工程**

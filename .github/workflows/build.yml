@@ -90,7 +90,7 @@ jobs:
             gh release delete "$TAG" --yes 2>/dev/null || true
             gh release create "$TAG" citie.apk \
               --title "词贴 $TAG" \
-              --notes "自动构建 · 固定签名，可直接覆盖安装。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --notes "自动构建 · 固定签名（v0.1.1 起各版本可直接覆盖安装；从旧 v0.1.0 升级需先卸载一次）。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
               --latest
           else
             TAG="v${{ steps.ver.outputs.version }}"
@@ -99,6 +99,6 @@ jobs:
             gh release create "$TAG" citie.apk \
               --target "$GITHUB_SHA" \
               --title "词贴 $TAG" \
-              --notes "自动构建 · 固定签名，可直接覆盖安装。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --notes "自动构建 · 固定签名（v0.1.1 起各版本可直接覆盖安装；从旧 v0.1.0 升级需先卸载一次）。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
               --latest
           fi
