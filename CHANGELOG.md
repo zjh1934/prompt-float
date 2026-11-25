@@ -6,8 +6,12 @@
 ## v0.1.2（2026-11-25）
 
 **安装包命名（用户反馈：下载器里 `app-debug.apk` 太多，分不清谁是谁）**
-- 命名规则改为 **软件名 + v版本号 + `.apk`** → `词贴-v0.1.2.apk`
-- CI 从 `versionName` 动态拼名，不再产出 `citie.apk`；`upload-artifact` 与 Release 资产同步
+- 命名规则改为 **软件名 + v版本号 + `.apk`** → `Citie-v0.1.2.apk`
+- ⚠️ 实测：先试了 `词贴-v0.1.2.apk`，**GitHub Release 的 asset 文件名不支持中文**，
+  上传时非 ASCII 前缀被吞、只剩 `-v0.1.2.apk`。故文件名用「词贴」的拉丁写法 `Citie`，
+  中文名放 asset 的 `label`（页面显示「词贴 v0.1.2 安装包」，label 实测支持中文）
+- CI 从 `versionName` 动态拼名；`upload-artifact` 与 Release 资产同步；发布后自动补中文 label
+- v0.1.1 的 `citie.apk` 也重命名为 `Citie-v0.1.1.apk`，feed 里最近两版命名统一
 - 约定写进 `project/版本与发布.md`，以后每版自动带上版本号
 
 **订阅地址纠正（之前给错了）**

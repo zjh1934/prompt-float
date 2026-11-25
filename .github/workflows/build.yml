@@ -61,12 +61,13 @@ jobs:
       - name: 编译 APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      # 命名规则：软件名 + v版本号 + .apk
-      # 例：词贴-v0.1.2.apk。绝不再出现 app-debug.apk / citie.apk 这种
-      # 下载目录里一堆同名文件、分不清谁是谁的名字。
+      # 命名规则：软件名(拉丁化) + v版本号 + .apk → Citie-v0.1.2.apk
+      # 注意：GitHub Release 的 asset **文件名不支持中文**（实测上传时非 ASCII 会被吞掉，
+      # 只剩 "-v0.1.2.apk"）。所以文件名用 ASCII 的 Citie，中文「词贴」放在 label 里。
+      # 绝不再出现 app-debug.apk / citie.apk 这种下载目录里一堆同名、分不清谁是谁的名字。
       - name: 整理产物 + 校验签名
         run: |
-          APK="词贴-v${{ steps.ver.outputs.version }}.apk"
+          APK="Citie-v${{ steps.ver.outputs.version }}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "$APK"
           echo "APK_NAME=$APK" >> "$GITHUB_ENV"
           echo "产物文件名：$APK"
@@ -107,4 +108,10 @@ jobs:
               --title "词贴 $TAG" \
               --notes "$NOTES" \
               --latest
+          fi
+          # asset 文件名只能是 ASCII；中文软件名放进 label，Release 页面上照样一眼认得出
+          ASSET_ID=$(gh api "repos/${{ github.repository }}/releases/tags/$TAG" --jq '.assets[0].id' 2>/dev/null || true)
+          if [ -n "$ASSET_ID" ]; then
+            gh api --method PATCH "repos/${{ github.repository }}/releases/assets/$ASSET_ID" \
+              -f name="$APK_NAME" -f label="词贴 $TAG 安装包" >/dev/null 2>&1 || true
           fi

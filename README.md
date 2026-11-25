@@ -57,12 +57,17 @@ https://github.com/zjh1934/prompt-float/releases
 **软件名 + v版本号 + `.apk`**，例如：
 
 ```
-词贴-v0.1.2.apk
+Citie-v0.1.2.apk
 ```
 
-不再出现 `app-debug.apk` / `citie.apk` 这种下载目录里一堆同名、分不清谁是谁的名字。
-每次出包升一个小版本，文件名跟着版本变，下载器里按名字就能认出谁是谁。
-约定见 [project/版本与发布.md](project/版本与发布.md)。
+> ⚠️ 有个平台限制得说清楚：我试过直接叫 **`词贴-v0.1.2.apk`**，但
+> **GitHub Release 的 asset 文件名不支持中文** —— 上传时非 ASCII 前缀被吞掉，只剩
+> `-v0.1.2.apk`。所以文件名用「词贴」的拉丁写法 `Citie`，中文名放在 Release 的
+> **label** 里（页面显示「词贴 v0.1.2 安装包」）。
+> 关键是：**下载器里再也不会是一堆 `app-debug.apk` / `citie.apk`**，按 `Citie-v版本号`
+> 一眼就能认出谁是谁，这正是你要的。
+
+每次出包升一个小版本，文件名跟着版本变。约定见 [project/版本与发布.md](project/版本与发布.md)。
 
 ### 覆盖安装：从 v0.1.1 起不用卸载
 
@@ -72,7 +77,7 @@ https://github.com/zjh1934/prompt-float/releases
 > ⚠️ **一次例外**：`v0.1.0` 是加固定签名之前发布的旧随机签名包，
 > **`v0.1.0 → v0.1.1` 这一跳仍需卸载一次**（旧密钥已随 CI runner 销毁，无法补救）。
 > 从 **v0.1.1 往后**所有版本共用同一把签名，永久直接覆盖安装，提示词与授权都保留。
-> 没装过 v0.1.0 的话，直接装最新版 `词贴-v0.1.2.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
+> 没装过 v0.1.0 的话，直接装最新版 `Citie-v0.1.2.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
@@ -165,7 +170,7 @@ cd prompt-float
 gradle wrapper --gradle-version 8.7 --distribution-type bin
 ./gradlew :app:assembleDebug
 # Gradle 原生产物：app/build/outputs/apk/debug/app-debug.apk
-# 发布到 Releases 时 CI 会改名成：词贴-v0.1.2.apk（软件名 + v版本号）
+# 发布到 Releases 时 CI 会改名成：Citie-v0.1.2.apk（软件名拉丁化 + v版本号）
 ```
 
 Android Studio（Giraffe+）直接打开根目录也可以。CI 用内置 `GITHUB_TOKEN` 即可，
