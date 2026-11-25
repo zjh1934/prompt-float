@@ -7,7 +7,7 @@
 
   ![license](https://img.shields.io/badge/license-MIT-blue)
   ![platform](https://img.shields.io/badge/Android-8.0%2B-green)
-  ![version](https://img.shields.io/badge/version-v0.1.1-blueviolet)
+  ![version](https://img.shields.io/badge/version-v0.1.2-blueviolet)
   ![deps](https://img.shields.io/badge/第三方依赖-0-orange)
   ![permissions](https://img.shields.io/badge/uses--permission-0-brightgreen)
 
@@ -19,29 +19,50 @@
 
 <div align="center">
   <img src="docs/preview/ui_review_v3.png" width="100%" alt="极简主页面 / 悬浮球 / 展开面板" />
-  <br /><sub>v0.1.1 极简界面：一行状态、提示词列表、底部三个动作，无品牌头、无冗余说明</sub>
+  <br /><sub>极简界面（v0.1.1 起）：一行状态、提示词列表、底部三个动作，无品牌头、无冗余说明</sub>
 </div>
 
 ---
 
 ## 装 / 订阅
 
-### 给下载工具（Obtainium 等）填的是仓库地址
+### 这个框（RSS 2.0 / Atom / JSON Feed）填这条
+
+```
+https://github.com/zjh1934/prompt-float/releases.atom
+```
+
+> ⚠️ 说清楚边界：GitHub 原生的 `releases.atom` **只有版本通知条目，不带 APK 附件**
+> （feed 里没有 `<enclosure>`）。也就是说订阅后你会收到「词贴 v0.1.2 发布了」，
+> 但**点进去还得自己下安装包**，它不会自动把 APK 抓下来装。
+> 如果你的工具是要从 feed 里直接解析安装包，需要另做一个带 enclosure 的 feed，
+> 开 issue 说一声我加。
+
+### 自动抓包安装（Obtainium 等）填仓库地址
 
 ```
 https://github.com/zjh1934/prompt-float
 ```
 
-工具会自己抓 Releases 里的 `citie.apk`。**Releases 页面本身没有「订阅安装包」的链接**，
-`.atom` 只是「出新版本」的通知，不带 APK：
+这类工具自己查 Releases 并挑 `.apk`，不需要 feed。
+
+Releases 页面直达：
 
 ```
 https://github.com/zjh1934/prompt-float/releases
-https://github.com/zjh1934/prompt-float/releases.atom
 ```
 
-> 每次出包升一个小版本（v0.1.0 → v0.1.1 → …），APK 文件名固定 `citie.apk`，
-> 所以订阅端不会因为改名抓空。约定见 [project/版本与发布.md](project/版本与发布.md)。
+### 安装包命名规则
+
+**软件名 + v版本号 + `.apk`**，例如：
+
+```
+词贴-v0.1.2.apk
+```
+
+不再出现 `app-debug.apk` / `citie.apk` 这种下载目录里一堆同名、分不清谁是谁的名字。
+每次出包升一个小版本，文件名跟着版本变，下载器里按名字就能认出谁是谁。
+约定见 [project/版本与发布.md](project/版本与发布.md)。
 
 ### 覆盖安装：从 v0.1.1 起不用卸载
 
@@ -51,7 +72,7 @@ https://github.com/zjh1934/prompt-float/releases.atom
 > ⚠️ **一次例外**：`v0.1.0` 是加固定签名之前发布的旧随机签名包，
 > **`v0.1.0 → v0.1.1` 这一跳仍需卸载一次**（旧密钥已随 CI runner 销毁，无法补救）。
 > 从 **v0.1.1 往后**所有版本共用同一把签名，永久直接覆盖安装，提示词与授权都保留。
-> 没装过 v0.1.0 的话，直接装 v0.1.1 即可。详见 [SECURITY.md](SECURITY.md)。
+> 没装过 v0.1.0 的话，直接装最新版 `词贴-v0.1.2.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
@@ -143,7 +164,8 @@ git clone https://github.com/zjh1934/prompt-float.git
 cd prompt-float
 gradle wrapper --gradle-version 8.7 --distribution-type bin
 ./gradlew :app:assembleDebug
-# 产物：app/build/outputs/apk/debug/app-debug.apk
+# Gradle 原生产物：app/build/outputs/apk/debug/app-debug.apk
+# 发布到 Releases 时 CI 会改名成：词贴-v0.1.2.apk（软件名 + v版本号）
 ```
 
 Android Studio（Giraffe+）直接打开根目录也可以。CI 用内置 `GITHUB_TOKEN` 即可，

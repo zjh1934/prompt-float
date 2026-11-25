@@ -33,7 +33,8 @@ cd prompt-float
 ```bash
 gradle wrapper --gradle-version 8.7 --distribution-type bin
 ./gradlew :app:assembleDebug
-# 产物：app/build/outputs/apk/debug/app-debug.apk
+# Gradle 原生产物：app/build/outputs/apk/debug/app-debug.apk
+# CI 发布时会改名成「词贴-v${versionName}.apk」，别把原生产物名直接传出去
 ```
 
 ## 提交前自查

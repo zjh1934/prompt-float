@@ -13,8 +13,8 @@ android {
         applicationId = "com.yuanbao.promptfloat"
         minSdk = 26              // Android 8.0：TYPE_ACCESSIBILITY_OVERLAY / ACTION_PASTE 均可用
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
     }
 
     /**
@@ -22,7 +22,7 @@ android {
      * GitHub Actions 每次都是全新 runner，默认的 ~/.android/debug.keystore 会重新随机生成，
      * 导致同一个包名的 APK 签名不同，Android 拒绝覆盖安装 → 用户被迫先卸载。
      * 这里把一把**公开的开发签名**提交进仓库，所有构建（本机 / CI / 任何 fork）都用同一把，
-     * 于是 v0.1.1 可以直接盖在 v0.1.0 上装。
+     * 于是从 v0.1.1 起各版本都能直接覆盖安装（v0.1.0 是旧随机签名，那一跳需卸一次）。
      *
      * 注意：这是开发签名，不是发布私钥，不提供任何安全保证。详见 SECURITY.md。
      */

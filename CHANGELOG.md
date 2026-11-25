@@ -3,6 +3,25 @@
 版本号遵循语义化版本；**每次出包升一个小版本**（patch +1），约定见
 [project/版本与发布.md](project/版本与发布.md)。
 
+## v0.1.2（2026-11-25）
+
+**安装包命名（用户反馈：下载器里 `app-debug.apk` 太多，分不清谁是谁）**
+- 命名规则改为 **软件名 + v版本号 + `.apk`** → `词贴-v0.1.2.apk`
+- CI 从 `versionName` 动态拼名，不再产出 `citie.apk`；`upload-artifact` 与 Release 资产同步
+- 约定写进 `project/版本与发布.md`，以后每版自动带上版本号
+
+**订阅地址纠正（之前给错了）**
+- 用户截图是「新建订阅 / RSS 2.0 · Atom · JSON Feed」输入框 → 该填
+  `https://github.com/zjh1934/prompt-float/releases.atom`
+- 上一轮给的**仓库地址**只对 Obtainium 这类自动抓包工具成立，对 feed 订阅框是错的
+- 如实说明边界：GitHub 原生 `releases.atom` 只有版本通知、**不带 APK 附件**（无 `<enclosure>`），
+  订阅后仍需自己去 Releases 下包；若工具需要从 feed 直接解析安装包，需另做带 enclosure 的 feed
+- Release 说明里内置两类订阅地址，方便直接复制
+
+**工程**
+- `versionCode` 2 → 3，`versionName` 0.1.1 → 0.1.2
+- 无功能代码改动，签名与包名不变 → **v0.1.1 可直接覆盖装 v0.1.2**
+
 ## v0.1.1（2026-11-25）
 
 **修核心 bug**

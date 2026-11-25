@@ -61,44 +61,50 @@ jobs:
       - name: 编译 APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
+      # 命名规则：软件名 + v版本号 + .apk
+      # 例：词贴-v0.1.2.apk。绝不再出现 app-debug.apk / citie.apk 这种
+      # 下载目录里一堆同名文件、分不清谁是谁的名字。
       - name: 整理产物 + 校验签名
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk citie.apk
-          ls -lh citie.apk
+          APK="词贴-v${{ steps.ver.outputs.version }}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "$APK"
+          echo "APK_NAME=$APK" >> "$GITHUB_ENV"
+          echo "产物文件名：$APK"
+          ls -lh "$APK"
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           SIGNER=$(find "$SDK/build-tools" -name apksigner -type f | head -1)
           if [ -n "$SIGNER" ]; then
-            "$SIGNER" verify --print-certs citie.apk 2>/dev/null | grep -i 'SHA-256' | head -2 || true
+            "$SIGNER" verify --print-certs "$APK" 2>/dev/null | grep -i 'SHA-256' | head -2 || true
           fi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: citie-apk
-          path: citie.apk
+          path: ${{ env.APK_NAME }}
           if-no-files-found: error
 
-      # 打 tag 或手动勾选 → 把 APK 挂到 Releases，下载工具靠这个识别安装包。
-      # 文件名固定为 citie.apk，保证订阅端不会因为改名而抓不到。
+      # 打 tag 或手动勾选 → 把 APK 挂到 Releases。
       - name: 发布 Release（含 APK）
         if: startsWith(github.ref, 'refs/tags/v') || inputs.make_release == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          NOTES="自动构建 · 固定签名（v0.1.1 起各版本可直接覆盖安装；从旧 v0.1.0 升级需先卸载一次）。装完请在系统设置里开启「词贴」无障碍服务，主页面「导出日志」可一键生成 MD 开发者日志。订阅地址（RSS/Atom）：https://github.com/zjh1934/prompt-float/releases.atom ；自动抓包安装（Obtainium 等）：https://github.com/zjh1934/prompt-float 。详见仓库 README。"
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
             gh release delete "$TAG" --yes 2>/dev/null || true
-            gh release create "$TAG" citie.apk \
+            gh release create "$TAG" "$APK_NAME" \
               --title "词贴 $TAG" \
-              --notes "自动构建 · 固定签名（v0.1.1 起各版本可直接覆盖安装；从旧 v0.1.0 升级需先卸载一次）。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --notes "$NOTES" \
               --latest
           else
             TAG="v${{ steps.ver.outputs.version }}"
             gh release delete "$TAG" --yes 2>/dev/null || true
             # --target 指定当前提交，不 push tag，避免再次触发 tag 工作流造成循环
-            gh release create "$TAG" citie.apk \
+            gh release create "$TAG" "$APK_NAME" \
               --target "$GITHUB_SHA" \
               --title "词贴 $TAG" \
-              --notes "自动构建 · 固定签名（v0.1.1 起各版本可直接覆盖安装；从旧 v0.1.0 升级需先卸载一次）。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --notes "$NOTES" \
               --latest
           fi
