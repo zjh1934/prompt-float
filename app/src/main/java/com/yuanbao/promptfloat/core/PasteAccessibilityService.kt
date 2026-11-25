@@ -54,30 +54,70 @@ class PasteAccessibilityService : AccessibilityService() {
     private var initialTouchX = 0f
     private var initialTouchY = 0f
     private var dragged = false
+    private var lastEventLogAt = 0L
 
     override fun onCreate() {
         super.onCreate()
         wm = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         repo = (application as PromptApp).prompts
         prefs = getSharedPreferences("prompt_float", Context.MODE_PRIVATE)
+        DevLogger.i("SERVICE", "onCreate")
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
+        DevLogger.i("SERVICE", "onServiceConnected ✅ 无障碍已连上")
         if (prefs.getBoolean(PromptRepository.KEY_BALL_ENABLED, true)) showBall()
+        else DevLogger.i("BALL", "开关为关，未创建悬浮球")
     }
 
+    /**
+     * ★ 这里是「点一下展开、立马自动收起」的根因所在。
+     *
+     * 旧逻辑：收到 TYPE_WINDOW_STATE_CHANGED 就 collapsePanel()。
+     * 但我们自己 wm.addView() 添加 TYPE_ACCESSIBILITY_OVERLAY 面板时，系统**立刻**
+     * 会派发一次 windowStateChanged 事件；面板刚加上就被自己收掉了。
+     * 键盘弹出、输入法窗口变化也会发同一事件，同样会误收。
+     *
+     * 修法：**彻底不用无障碍事件去收起面板**。
+     * 收起只发生在用户明确操作（点收起 / 点提示词 / 点球切换）或服务销毁时。
+     * 这里只做诊断埋点，方便从导出日志里看清「当时到底来了什么事件」。
+     */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // 切换窗口时收起面板，避免旧面板挡在新 App 上面
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) collapsePanel()
+        if (event == null) return
+        val type = event.eventType
+        // 高频事件做 500ms 节流，避免日志被刷爆
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - lastEventLogAt > 500L) {
+            lastEventLogAt = now
+            DevLogger.d(
+                "A11Y",
+                "event=${eventTypeName(type)} pkg=${event.packageName?.toString().orEmpty()} " +
+                    "panelOpen=${panelView != null}"
+            )
+        }
+        // 注意：**不在这里 collapsePanel()**。切窗口时面板保持展开，
+        // 用户点「收起 ✕」或再点一次球即可关闭，行为可预期。
     }
 
-    override fun onInterrupt() {}
+    private fun eventTypeName(t: Int): String = when (t) {
+        AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> "WINDOW_STATE"
+        AccessibilityEvent.TYPE_VIEW_FOCUSED -> "VIEW_FOCUSED"
+        AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> "WINDOW_CONTENT"
+        AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> "VIEW_TEXT"
+        AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED -> "VIEW_SELECTION"
+        else -> "TYPE_$t"
+    }
+
+    override fun onInterrupt() {
+        DevLogger.w("SERVICE", "onInterrupt（系统临时中断无障碍）")
+    }
 
     override fun onDestroy() {
+        DevLogger.i("SERVICE", "onDestroy")
         instance = null
-        collapsePanel()
+        collapsePanel("service-destroy")
         removeBall()
         super.onDestroy()
     }
@@ -95,14 +135,17 @@ class PasteAccessibilityService : AccessibilityService() {
         }
         v.setOnTouchListener(ballTouch)
         runCatching { wm.addView(v, p) }
+            .onFailure { DevLogger.e("BALL", "addView 失败", it) }
         ballView = v
         ballParams = p
+        DevLogger.i("BALL", "showBall 成功 | x=${p.x} y=${p.y}")
     }
 
     private fun removeBall() {
         ballView?.let { runCatching { wm.removeViewImmediate(it) } }
         ballView = null
         ballParams = null
+        DevLogger.i("BALL", "removeBall")
     }
 
     private val ballTouch = View.OnTouchListener { v, ev ->
@@ -129,7 +172,13 @@ class PasteAccessibilityService : AccessibilityService() {
                 true
             }
             MotionEvent.ACTION_UP -> {
-                if (dragged) snapToEdge() else togglePanel()
+                if (dragged) {
+                    snapToEdge()
+                    DevLogger.d("BALL", "拖拽结束，贴边")
+                } else {
+                    DevLogger.d("BALL", "点击悬浮球 → togglePanel")
+                    togglePanel()
+                }
                 v.performClick()
                 true
             }
@@ -153,7 +202,7 @@ class PasteAccessibilityService : AccessibilityService() {
     // ---------------------------------------------------------------- 展开面板
 
     private fun togglePanel() {
-        if (panelView != null) collapsePanel() else expandPanel()
+        if (panelView != null) collapsePanel("ball-tap") else expandPanel()
     }
 
     private fun expandPanel() {
@@ -185,13 +234,17 @@ class PasteAccessibilityService : AccessibilityService() {
                 ).apply { setMargins(0, 0, dp(8), 0) }
                 container.addView(chip, lp)
                 chip.setOnClickListener {
+                    DevLogger.d("PANEL", "点选第 ${container.indexOfChild(chip) + 1} 条 → 开始插入")
                     insertPrompt(item.content)
-                    collapsePanel()
+                    collapsePanel("prompt-inserted")
                 }
             }
         }
+        DevLogger.i("PANEL", "expandPanel(reason=ball-tap) | 条目数=${items.size}")
 
-        v.findViewById<TextView>(R.id.panelClose).setOnClickListener { collapsePanel() }
+        v.findViewById<TextView>(R.id.panelClose).setOnClickListener {
+            collapsePanel("close-button")
+        }
 
         val p = overlayParams().apply {
             width = resources.displayMetrics.widthPixels - dp(32)
@@ -200,16 +253,24 @@ class PasteAccessibilityService : AccessibilityService() {
             y = computePanelY()
         }
         runCatching { wm.addView(v, p) }
+            .onFailure { DevLogger.e("PANEL", "addView 面板失败", it) }
         panelView = v
         panelParams = p
         setBallActive(true)
+        DevLogger.i("PANEL", "面板已展开 | y=${p.y} | 宽度=${p.width}")
     }
 
-    private fun collapsePanel() {
+    /** reason 写进日志，一眼就能看出「是谁把面板收掉的」 */
+    private fun collapsePanel(reason: String = "unspecified") {
+        if (panelView == null) {
+            DevLogger.d("PANEL", "collapse($reason) 跳过：面板本来就没开")
+            return
+        }
         panelView?.let { runCatching { wm.removeViewImmediate(it) } }
         panelView = null
         panelParams = null
         setBallActive(false)
+        DevLogger.i("PANEL", "collapse(reason=$reason)")
     }
 
     /**
@@ -222,11 +283,10 @@ class PasteAccessibilityService : AccessibilityService() {
         val screenH = resources.displayMetrics.heightPixels
         val estPanelH = dp(150)
         val below = ballY + ballH + dp(6)
-        return if (below + estPanelH <= screenH - dp(24)) {
-            below
-        } else {
-            maxOf(dp(8), ballY - estPanelH - dp(6))
-        }
+        val flip = below + estPanelH > screenH - dp(24)
+        val result = if (!flip) below else maxOf(dp(8), ballY - estPanelH - dp(6))
+        DevLogger.d("PANEL", "computePanelY flip=$flip ballY=$ballY screenH=$screenH → y=$result")
+        return result
     }
 
     private fun syncPanelPosition() {
@@ -267,14 +327,22 @@ class PasteAccessibilityService : AccessibilityService() {
      *     此时把提示词留在剪贴板并提示用户长按粘贴。
      */
     private fun insertPrompt(text: String) {
+        DevLogger.i("INSERT", "开始 | 文本长度=${text.length}")
         val node = runCatching {
             findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
         }.getOrNull()
 
         if (node == null) {
+            DevLogger.w("INSERT", "focus=null 没找到聚焦输入框 → 提示用户")
             toast(R.string.toast_no_field)
             return
         }
+        DevLogger.d(
+            "INSERT",
+            "focus 命中 | class=${node.className} editable=${node.isEditable} " +
+                "sel=[${node.textSelectionStart},${node.textSelectionEnd}] " +
+                "existingLen=${node.text?.length ?: 0}"
+        )
 
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val previous = runCatching { cm.primaryClip }.getOrNull()
@@ -283,20 +351,26 @@ class PasteAccessibilityService : AccessibilityService() {
         val pasted = try {
             node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
         } catch (e: Exception) {
+            DevLogger.e("INSERT", "ACTION_PASTE 抛异常", e)
             false
         }
+        DevLogger.i("INSERT", "paste=$pasted")
 
         if (pasted) {
             // 插入成功就还原剪贴板，不污染用户原来的复制内容
             previous?.let { runCatching { cm.setPrimaryClip(it) } }
+            DevLogger.i("INSERT", "结果=成功(PASTE)，剪贴板已还原")
             toast(R.string.toast_pasted)
         } else {
             val setTextOk = trySetText(node, text)
+            DevLogger.i("INSERT", "setText=$setTextOk")
             if (setTextOk) {
                 previous?.let { runCatching { cm.setPrimaryClip(it) } }
+                DevLogger.i("INSERT", "结果=成功(SET_TEXT 兜底)，剪贴板已还原")
                 toast(R.string.toast_pasted)
             } else {
                 // 故意不还原剪贴板：让提示词留在里面供用户手动长按粘贴
+                DevLogger.w("INSERT", "结果=两个动作都被拒绝 → 剪贴板兜底")
                 toast(R.string.toast_clipboard)
             }
         }
@@ -309,11 +383,16 @@ class PasteAccessibilityService : AccessibilityService() {
         val before = node.text?.toString().orEmpty()
         val start = node.textSelectionStart
         val end = node.textSelectionEnd
-        val merged = if (start in 0..before.length && end >= start && end <= before.length) {
+        val inRange = start in 0..before.length && end >= start && end <= before.length
+        val merged = if (inRange) {
             before.substring(0, start) + text + before.substring(end)
         } else {
             before + text
         }
+        DevLogger.d(
+            "INSERT",
+            "SET_TEXT 兜底 | 选区合法=$inRange 原长=${before.length} 写回长度=${merged.length}"
+        )
         val args = Bundle().apply {
             putCharSequence(
                 AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
@@ -323,6 +402,7 @@ class PasteAccessibilityService : AccessibilityService() {
         return try {
             node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
         } catch (e: Exception) {
+            DevLogger.e("INSERT", "ACTION_SET_TEXT 抛异常", e)
             false
         }
     }
@@ -331,7 +411,8 @@ class PasteAccessibilityService : AccessibilityService() {
 
     /** MainActivity 改完提示词 / 切完显隐后调用，同进程直连，不绕广播 */
     fun refreshFromSettings() {
-        collapsePanel()
+        DevLogger.i("SERVICE", "refreshFromSettings（主页面数据/开关有变更）")
+        collapsePanel("settings-refresh")
         val enabled = prefs.getBoolean(PromptRepository.KEY_BALL_ENABLED, true)
         if (enabled) showBall() else removeBall()
     }

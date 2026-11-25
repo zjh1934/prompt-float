@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/preview/logo.png" width="120" alt="词贴 LOGO" />
+  <img src="docs/preview/logo.png" width="110" alt="词贴 LOGO" />
 
   # 词贴 · PromptFloat
 
@@ -7,6 +7,7 @@
 
   ![license](https://img.shields.io/badge/license-MIT-blue)
   ![platform](https://img.shields.io/badge/Android-8.0%2B-green)
+  ![version](https://img.shields.io/badge/version-v0.1.1-blueviolet)
   ![deps](https://img.shields.io/badge/第三方依赖-0-orange)
   ![permissions](https://img.shields.io/badge/uses--permission-0-brightgreen)
 
@@ -16,130 +17,118 @@
 点其中一条，就把这段预设提示词插进**当前正在输入的那个输入框**——AI 对话、微信、浏览器、
 笔记……任何有输入框的地方。**你的输入法一个字都不用换。**
 
-提示词的新增 / 编辑 / 删除 / 排序 / 备份，全在主页面里做，改完悬浮球即时生效。
-
 <div align="center">
-  <img src="docs/preview/ui_review_v2.png" width="100%" alt="主页面 / 悬浮球 / 展开面板 UI 预览" />
-  <br /><sub>左：主页面　中：悬浮球收起态　右：球被拖到下半屏时面板自动翻到上方</sub>
+  <img src="docs/preview/ui_review_v3.png" width="100%" alt="极简主页面 / 悬浮球 / 展开面板" />
+  <br /><sub>v0.1.1 极简界面：一行状态、提示词列表、底部三个动作，无品牌头、无冗余说明</sub>
 </div>
 
 ---
 
-## 先说清楚一件必须知道的事
+## 装 / 订阅
 
-「不跟输入法抢」能做到，但有个绕不开的 Android 事实：
-
-> 普通 App **拿不到别的 App 的 `InputConnection`**，那是输入法（`InputMethodService`）专属的通道。
-> 想在别人的输入框里写字，唯一正经路子是 **无障碍服务（AccessibilityService）**。
-
-所以：**装完不能直接用，需要你去「设置 → 无障碍」里手动把「词贴」打开一次。**
-这是系统要求，不是这个 App 想要权限。Android 10 起不能再用 adb 直接开，Android 13 起开启时
-会有更醒目的安全提示弹窗。
-
-但比预想的省事：悬浮球直接画在无障碍服务的 `TYPE_ACCESSIBILITY_OVERLAY` 层上，
-**连「显示在其他应用上层」(`SYSTEM_ALERT_WINDOW`) 都不用申请**，`AndroidManifest.xml` 里
-零 `uses-permission`。你只需要开一个开关，而且这个 App 不联网、不读你输入的内容、不上传任何东西。
-
-三个技术要点：
-
-- 所有浮窗都带 `FLAG_NOT_FOCUSABLE`。一旦浮窗抢焦点，输入框失焦、键盘收起，
-  `findFocus(FOCUS_INPUT)` 立刻返回 null，悬浮球等于把自己弄没了——这个标志就是
-  「不跟输入法抢」的技术保证。
-- 定位当前输入位置用 `findFocus(AccessibilityNodeInfo.FOCUS_INPUT)`，
-  注意别用 `FOCUS_ACCESSIBILITY`（那是 TalkBack 的绿框，不是光标）。
-- 插入顺序 **PASTE → SET_TEXT → 剪贴板**：`ACTION_PASTE` 尊重光标、不覆盖你已经打的一半草稿；
-  `ACTION_SET_TEXT` 会整体替换，所以只能当兜底并且要按选区拼接。密码框 / Flutter /
-  部分自绘输入框两个动作都可能拒绝，此时提示词留在剪贴板并提示你长按粘贴。
-
-> 边界：**只填，不发**。不替你点发送、不读输入内容、不联网、无账号、无统计、无广告。
-
----
-
-## 安装与订阅
-
-### 手动装
-
-去 [Releases 页面](https://github.com/zjh1934/prompt-float/releases) 下载最新的 `.apk`，
-允许「安装未知来源」后安装，再按主页面提示开启无障碍服务。
-
-### 下载工具订阅（Obtainium 等）
-
-⚠️ 这里要纠正一个常见误解：**GitHub Releases 页面本身没有一个「订阅链接」能让下载工具直接订阅安装包**。
-两类链接用途不同，别加错：
-
-**① 给下载工具（Obtainium / AppVerifier / FFUpdater 等）填的是仓库地址**，
-工具自己会去查这个仓库的 Releases 并挑 `.apk`：
+### 给下载工具（Obtainium 等）填的是仓库地址
 
 ```
 https://github.com/zjh1934/prompt-float
 ```
 
-**② 想订阅「出新版本」的通知，用 Releases 的 Atom feed**（RSS 阅读器 / 通知机器人用，
-它只告诉你有新版本，**不提供 APK 下载**）：
-
-```
-https://github.com/zjh1934/prompt-float/releases.atom
-```
-
-Releases 页面直达：
+工具会自己抓 Releases 里的 `citie.apk`。**Releases 页面本身没有「订阅安装包」的链接**，
+`.atom` 只是「出新版本」的通知，不带 APK：
 
 ```
 https://github.com/zjh1934/prompt-float/releases
+https://github.com/zjh1934/prompt-float/releases.atom
 ```
 
-> 要让下载工具能正常识别，每个 Release 里必须挂 `.apk` 资产（本项目 CI 已自动处理），
-> 且版本号走 `v0.1.0` 这种 tag。见 [.github/workflows](.github/workflows)。
+> 每次出包升一个小版本（v0.1.0 → v0.1.1 → …），APK 文件名固定 `citie.apk`，
+> 所以订阅端不会因为改名抓空。约定见 [project/版本与发布.md](project/版本与发布.md)。
+
+### 覆盖安装不用卸载
+
+包名 `com.yuanbao.promptfloat` **永久固定，从 v0.1.0 起没变过**。
+之前要卸载重装的真正原因是 CI 每次随机生成 debug 签名 —— v0.1.1 起固定了签名，
+**新版本直接盖着装就行**，提示词和无障碍授权都保留。详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
-## 用起来是这样
+## 第一次用
 
-1. 装 APK → 打开「词贴」→ 点「去开启无障碍」→ 在系统列表里启用「词贴」→ 返回。
-2. 在「我的提示词」里 ＋ 新增几条（标题 + 全文），用 `⋯` 菜单上移 / 下移 / 编辑 / 删除。
-3. 打开任意 AI 对话，点一下输入框让键盘弹出来。
-4. 点小悬浮球 → 展开一排提示词 → 点一条 → 文字进输入框，输入法纹丝不动。
-5. 小球可拖动、松手贴边；再点球（或「收起 ✕」）收起面板。
-   球被拖到屏幕下半部时，面板会自动翻到球**上方**，不会被键盘吃掉。
+装完打开 → 点「开启」→ 在系统无障碍列表里启用「词贴」→ 返回。
+**这一步是 Android 系统要求**：普通 App 拿不到别的 App 的 `InputConnection`
+（那是输入法专属通道），只能用无障碍服务定位输入框。Android 10 起不能 adb 代开，
+13 起开启时会有醒目安全提示。
+
+然后：在「提示词」里 ＋ 新增 → 打开任意 AI 对话点一下输入框 → 点悬浮球 → 点一条 → 文字进框。
+小球可拖动贴边，球在下半屏时面板会自动翻到上方，不会被键盘吃掉。
+
+> 边界：**只填，不发**。不替你点发送、不读输入内容、不联网、无账号、无统计、无广告。
+> App 里**零 `uses-permission`**，连「显示在其他应用上层」都不用申请。
+
+---
+
+## 出问题了？一键导出开发者日志
+
+主页面底部 **「导出日志」**：生成一份 **Markdown** → 写私有文件 → 复制剪贴板 → 打开分享，
+可以直接整份贴给我或开 issue。里面有：
+
+- 环境快照：版本 / 包名 / 机型 / API / 无障碍状态 / 悬浮服务是否在运行
+- 错误汇总 + 完整事件时间线（`APP / SERVICE / A11Y / BALL / PANEL / INSERT / UI / DATA`）
+- 关键判断：`collapse(reason=…)`、`paste=…`、`setText=…`、`focus=null` 都记着
+
+**贴一份日志基本就能定位**。例如 `PANEL expand` 紧跟 `PANEL collapse(reason=a11y-event)`
+就是 v0.1.0「点一下就收起」那个 bug；`paste=false` + `setText=false` 说明宿主输入框
+拒绝了自动插入、已走剪贴板兜底。对照表见 [project/开发者日志说明.md](project/开发者日志说明.md)。
+
+**隐私红线**：日志**不含**提示词正文、输入框文本、剪贴板内容、窗口文字，
+只记事件类型、成功/失败、数量与长度。可放心公开贴。
 
 ---
 
 ## 完全开源，欢迎共创
 
-- 协议：**MIT**，[LICENSE](LICENSE)。可自由 fork、修改、商用、再分发。
-- 零第三方依赖：`dependencies { }` 是空的，全部用 Android 框架自带 API，审计起来很干净。
-- 上游来源逐条写清：[CREDITS.md](CREDITS.md) —— 哪些是本项目从零写的、
-  哪些只是「借鉴思路并指回上游」，都在表里。**没有复制任何上游项目的代码。**
-- 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)，更新日志见 [CHANGELOG.md](CHANGELOG.md)。
+- 协议 **MIT**，[LICENSE](LICENSE)。可自由 fork、修改、商用、再分发。
+- **零第三方依赖**：`dependencies { }` 是空的，全部 Android 框架自带 API，审计很干净。
+- 上游来源逐条写清：[CREDITS.md](CREDITS.md) —— 哪些是从零写的、哪些只是
+  「借鉴思路并指回上游」，**没有复制任何上游项目代码**。
+- 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)；更新日志 [CHANGELOG.md](CHANGELOG.md)。
 
-特别欢迎共创：更多 App 的输入框兼容性实测、`{选中文本}` 变量占位符、分组/多行面板、
-SAF 文件导入导出、更聪明的键盘避让。
+特别欢迎共创：**真机兼容性实测**（沙盒没 Android SDK，这块最缺）、`{选中文本}` 占位符、
+分组/多行面板、更聪明的键盘避让。
 
 ---
 
-## 工程结构
+## 仓库结构：源码与项目文件分开，但同一个仓库
 
 ```
 prompt-float/
-├── app/src/main/java/com/yuanbao/promptfloat/
-│   ├── PromptApp.kt                       Application，持有仓库单例
-│   ├── data/PromptRepository.kt           提示词 CRUD / 排序 / JSON 备份
-│   ├── core/PasteAccessibilityService.kt  ★核心：无障碍 + 悬浮球 + 面板 + 三级插入
-│   └── ui/MainActivity.kt                 权限状态 + 提示词管理 + 导入导出
-├── app/src/main/res/                    布局、drawable、无障碍配置
-├── docs/
-│   ├── 需求与决策.md                     防断片：需求原话、技术决策、当前状态
-│   └── preview/                         LOGO 与 UI 预览图（用代码绘制）
-├── CREDITS.md / CONTRIBUTING.md / CHANGELOG.md
-└── .github/workflows/build.yml           CI：编译 + 自动发 Release 挂 APK
+├── app/                                  ← 软件源代码
+│   ├── src/main/java/com/yuanbao/promptfloat/
+│   │   ├── core/PasteAccessibilityService.kt   ★悬浮球/面板/三级插入
+│   │   ├── core/DevLogger.kt                   ★开发者日志与 MD 导出
+│   │   ├── ui/MainActivity.kt                  主页面（极简）
+│   │   ├── data/PromptRepository.kt            提示词 CRUD / 备份
+│   │   └── PromptApp.kt
+│   ├── src/main/res/                          布局、drawable、无障碍配置
+│   └── debug.keystore                         固定开发签名（公开）
+├── docs/preview/                         ← 用代码画的 UI 预览与 LOGO
+├── project/                              ← 项目文件，不是源码，但同仓库
+│   ├── 需求与决策.md                        防断片：需求原话、纠正记录、技术决策
+│   ├── 版本与发布.md                        包名/签名固定、小版本约定、发布记录
+│   ├── 开发者日志说明.md                    日志字段、隐私边界、定位对照表
+│   └── 待办与已知限制.md
+├── .github/workflows/build.yml           CI：编译 + 自动发 Release 挂 APK
+└── README / CREDITS / CONTRIBUTING / CHANGELOG / SECURITY / LICENSE
 ```
+
+> 改功能动 `app/`，改「我们为什么这么做」动 `project/`。两者一起版本化、一起追溯。
 
 | 项 | 值 |
 |---|---|
 | 语言 | Kotlin，原生 View / XML，无 Compose |
 | minSdk / targetSdk / compileSdk | 26 / 34 / 34 |
 | 构建 | AGP 8.5.2 · Kotlin 1.9.24 · Gradle 8.7 · JDK 17 |
-| 依赖 | 无 |
-| 权限声明 | 无（仅需用户手动开启无障碍服务） |
+| 依赖 / 权限声明 | 无 / 无（仅需手动开启无障碍服务） |
+| 包名 | `com.yuanbao.promptfloat`（永久固定） |
 
 ---
 
@@ -153,18 +142,16 @@ gradle wrapper --gradle-version 8.7 --distribution-type bin
 # 产物：app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Android Studio（Giraffe+）直接打开根目录也可以，会自动补齐 Gradle Wrapper。
-CI 用 GitHub Actions 内置的 `GITHUB_TOKEN` 即可，**不需要个人 PAT**；
-若确需 PAT，请放仓库 Settings → Secrets，不要写进任何文件。
+Android Studio（Giraffe+）直接打开根目录也可以。CI 用内置 `GITHUB_TOKEN` 即可，
+**不需要个人 PAT**；若确需 PAT 请放 Settings → Secrets，不要写进任何文件。
 
 ---
 
-## 已知限制 / 下一步
+## 已知限制
 
-- 自绘输入框、密码框、部分 WebView 可能两个动作都拒绝 → 已兜底到剪贴板 + Toast。
-- 悬浮球目前也浮在自家设置页上；后续可加「本 App 前台时隐藏」过滤。
-- 提示词目前是纯文本；后面可加 `{选中文本}` / 日期等变量占位符。
-- 导入导出目前走剪贴板 + 应用私有文件；可换成系统文件选择器（SAF）。
+- 自绘输入框、密码框、部分 WebView 可能拒绝两个插入动作 → 已兜底到剪贴板 + Toast。
+- 悬浮球也会浮在自家设置页上；键盘避让目前是静态高度估算。
+- 提示词目前是纯文本，导入导出走剪贴板 + 私有文件（日志已支持 SAF 另存）。
 - 未做云端同步（刻意不做，保持完全离线）。
 
-详细决策记录见 [docs/需求与决策.md](docs/需求与决策.md)。
+详细决策记录见 [project/需求与决策.md](project/需求与决策.md)。

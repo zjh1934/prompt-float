@@ -1,62 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 极简主页面：进来就能干活。
+     砍掉了 LOGO 品牌头、副标题、版本标签、用法长句、状态解释行、底部提示。
+     你都打开这个软件了，不需要页面再自我介绍一遍。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFAFAFC"
     android:orientation="vertical">
 
-    <!-- ① 品牌头：深色渐变条撑起第一层视觉层级 -->
+    <!-- 标题栏：只有名字 + 一个次级菜单，无 LOGO、无渐变、无装饰 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_header"
-        android:elevation="4dp"
+        android:layout_height="52dp"
         android:fitsSystemWindows="true"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingLeft="20dp"
-        android:paddingTop="24dp"
-        android:paddingRight="20dp"
-        android:paddingBottom="20dp">
-
-        <ImageView
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:contentDescription="@string/app_name"
-            android:src="@drawable/ic_launcher" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginLeft="12dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/main_title"
-                android:textColor="#FFFFFFFF"
-                android:textSize="22sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="@string/main_sub"
-                android:textColor="#CCFFFFFF"
-                android:textSize="12sp" />
-        </LinearLayout>
+        android:paddingLeft="18dp"
+        android:paddingRight="10dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:alpha="0.8"
-            android:text="@string/version_tag"
-            android:textColor="#FFFFFFFF"
-            android:textSize="11sp" />
+            android:layout_weight="1"
+            android:text="@string/main_title"
+            android:textColor="@color/text_main"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnMore"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:text="@string/more"
+            android:textColor="@color/text_sub"
+            android:textSize="22sp" />
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -68,75 +53,50 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingLeft="20dp"
-            android:paddingTop="18dp"
-            android:paddingRight="20dp"
-            android:paddingBottom="20dp">
+            android:paddingLeft="18dp"
+            android:paddingTop="14dp"
+            android:paddingRight="18dp"
+            android:paddingBottom="16dp">
 
-            <!-- ② 状态卡：主状态 + 一行解释，避免只给一个干巴巴的开关 -->
+            <!-- 一行状态：圆点 + 文字 + 一个动作按钮 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_card"
-                android:elevation="1dp"
-                android:orientation="vertical"
-                android:padding="14dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="14dp"
+                android:paddingTop="10dp"
+                android:paddingRight="8dp"
+                android:paddingBottom="10dp">
+
+                <TextView
+                    android:id="@+id/statusDot"
+                    android:layout_width="20dp"
+                    android:layout_height="wrap_content"
+                    android:text="●"
+                    android:textColor="@color/danger"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/statusText"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:text="@string/status_a11y_off"
                     android:textColor="@color/text_main"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/statusSub"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/status_a11y_sub_off"
-                    android:textColor="@color/text_sub"
-                    android:textSize="12sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/btnA11y"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1"
-                        android:text="@string/go_a11y"
-                        android:textSize="13sp" />
-
-                    <Button
-                        android:id="@+id/btnBall"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_marginLeft="10dp"
-                        android:layout_weight="1"
-                        android:text="@string/toggle_ball_on"
-                        android:textSize="13sp" />
-                </LinearLayout>
+                <Button
+                    android:id="@+id/btnA11y"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:minWidth="72dp"
+                    android:text="@string/go_a11y"
+                    android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- ③ 用法：一条轻量提示，不抢主内容 -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@drawable/bg_card"
-                android:padding="12dp"
-                android:text="@string/how_to"
-                android:textColor="@color/text_sub"
-                android:textSize="12sp" />
-
-            <!-- ④ 内容区标题 -->
+            <!-- 内容区标题：直接是列表，不铺任何说明 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -164,7 +124,7 @@
                 <Button
                     android:id="@+id/btnAdd"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
+                    android:layout_height="38dp"
                     android:text="@string/add"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -176,6 +136,7 @@
                 android:layout_marginTop="10dp"
                 android:orientation="vertical" />
 
+            <!-- 空状态：两行，不再长篇引导 -->
             <LinearLayout
                 android:id="@+id/emptyView"
                 android:layout_width="match_parent"
@@ -192,50 +153,59 @@
                     android:layout_height="wrap_content"
                     android:text="@string/empty_title"
                     android:textColor="@color/text_main"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
+                    android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="4dp"
                     android:text="@string/empty_sub"
                     android:textColor="@color/text_sub"
                     android:textSize="12sp" />
             </LinearLayout>
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/tip"
-                android:textColor="@color/text_sub"
-                android:textSize="11sp" />
-
-            <!-- ⑤ 备份：次级操作，放在最底部 -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnExport"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_weight="1"
-                    android:text="@string/export"
-                    android:textSize="13sp" />
-
-                <Button
-                    android:id="@+id/btnImport"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_marginLeft="10dp"
-                    android:layout_weight="1"
-                    android:text="@string/import_"
-                    android:textSize="13sp" />
-            </LinearLayout>
         </LinearLayout>
     </ScrollView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider" />
+
+    <!-- 底部工具条：三件事，不多一个 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingLeft="12dp"
+        android:paddingTop="8dp"
+        android:paddingRight="12dp"
+        android:paddingBottom="8dp">
+
+        <Button
+            android:id="@+id/btnBall"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_weight="1"
+            android:text="@string/toggle_ball_off"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnLog"
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_marginLeft="8dp"
+            android:layout_weight="1"
+            android:text="@string/export_log"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnBackup"
+            android:layout_width="52dp"
+            android:layout_height="42dp"
+            android:layout_marginLeft="8dp"
+            android:minWidth="0dp"
+            android:padding="0dp"
+            android:text="@string/more"
+            android:textSize="20sp" />
+    </LinearLayout>
 </LinearLayout>

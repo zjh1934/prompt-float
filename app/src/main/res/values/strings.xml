@@ -2,44 +2,46 @@
 <resources>
     <string name="app_name">词贴</string>
     <string name="app_name_full">词贴 · PromptFloat</string>
-    <string name="version_tag">开源 · v0.1.0</string>
     <string name="a11y_desc">词贴通过无障碍服务定位当前聚焦的输入框，并把你预设的提示词插入到光标处。它不读取、不上传输入内容，也不会替你点击发送。仅在你点选提示词时写入一次文本。</string>
 
+    <!-- 主页面：全部短词，去掉品牌头、副标题、用法说明、解释文案 -->
     <string name="main_title">词贴</string>
-    <string name="main_sub">不换输入法，点一下把提示词贴进当前输入框</string>
-
-    <string name="status_a11y_on">已就绪 · 无障碍服务已开启</string>
-    <string name="status_a11y_off">还不能用 · 请开启无障碍服务</string>
-    <string name="status_a11y_sub_on">悬浮球正在运行，输入法保持原样</string>
-    <string name="status_a11y_sub_off">普通 App 拿不到别的 App 的输入连接，只能借无障碍服务定位输入框</string>
-    <string name="go_a11y">去开启无障碍</string>
-    <string name="manage_a11y">管理无障碍设置</string>
+    <string name="status_a11y_on">无障碍已开启</string>
+    <string name="status_a11y_off">无障碍未开启</string>
+    <string name="go_a11y">开启</string>
+    <string name="manage_a11y">管理</string>
     <string name="toggle_ball_on">显示悬浮球</string>
     <string name="toggle_ball_off">隐藏悬浮球</string>
 
-    <string name="list_title">我的提示词</string>
+    <string name="list_title">提示词</string>
     <string name="list_count">%1$d 条</string>
     <string name="add">＋ 新增</string>
+    <string name="empty_title">还没有提示词</string>
+    <string name="empty_sub">点右上角 ＋ 新增</string>
+
     <string name="export">导出备份</string>
     <string name="import_">导入备份</string>
-    <string name="tip">增删改、排序都在这里，改完悬浮球即时生效</string>
-    <string name="how_to">在任意 AI 对话点开输入框 → 点悬浮球展开 → 点一条提示词即可</string>
-    <string name="empty_title">还没有提示词</string>
-    <string name="empty_sub">点右上角「＋ 新增」，把最常加的那段话存进来</string>
+    <string name="export_log">导出日志</string>
+    <string name="clear_log">清空日志</string>
+    <string name="about">关于</string>
+    <string name="share_log">分享开发者日志</string>
+    <string name="log_exported">开发者日志已生成（MD），已复制并打开分享</string>
+    <string name="log_cleared">日志已清空，现在可以复现一次问题</string>
+    <string name="about_text">词贴 · 不换输入法，点一下把预设提示词贴进当前输入框。\n\nMIT 开源，零第三方依赖，不联网、不记录输入内容。\n\n仓库：github.com/zjh1934/prompt-float</string>
 
     <string name="ball_label">词</string>
     <string name="panel_title">预设提示词</string>
     <string name="panel_close">收起 ✕</string>
-    <string name="panel_hint">点一条即插入当前输入框 · 左右滑动看更多</string>
-    <string name="panel_empty">还没有提示词，去「词贴」主页面新增</string>
+    <string name="panel_hint">点一条即插入 · 左右滑动看更多</string>
+    <string name="panel_empty">还没有提示词，去主页面新增</string>
 
     <string name="dlg_title_new">新增提示词</string>
     <string name="dlg_title_edit">编辑提示词</string>
-    <string name="dlg_label_title">标题（悬浮按钮上显示）</string>
+    <string name="dlg_label_title">标题（按钮上显示）</string>
     <string name="dlg_label_content">提示词全文</string>
     <string name="save">保存</string>
     <string name="cancel">取消</string>
-    <string name="more">⋯</string>
+    <string name="more">···</string>
     <string name="menu_title">这条提示词</string>
     <string name="menu_up">↑ 上移</string>
     <string name="menu_down">↓ 下移</string>

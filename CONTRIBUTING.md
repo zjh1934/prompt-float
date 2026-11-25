@@ -5,8 +5,11 @@
 
 ## 先说规矩
 
-1. **不要提交任何密钥。** 仓库里不出现 API Key、token、keystore、签名密码。
+1. **不要提交任何私有密钥。** 仓库里不出现 API Key、token、私有 keystore、私有签名密码。
    CI 用 GitHub Actions 内置的 `GITHUB_TOKEN`，不需要也不接受任何 PAT 入库。
+   **唯一例外**：`app/debug.keystore` 是随仓库提交的**公开开发签名**，
+   用途只是让各次构建签名一致、能覆盖安装，不是安全凭证（见 `SECURITY.md`）。
+   改它会导致所有用户必须卸载重装，**绝对不要动**。
 2. **保持零第三方依赖。** `app/build.gradle.kts` 的 `dependencies { }` 是空的，这是刻意设计
    （CI 稳定、审计简单、无供应链面）。要加依赖请先开 issue 讨论。
 3. **不收集数据。** 任何会读取、上传用户输入内容的 PR 都会被拒。这条是红线。
@@ -40,7 +43,9 @@ gradle wrapper --gradle-version 8.7 --distribution-type bin
 - [ ] `AccessibilityNodeInfo` 用完后 `recycle()`
 - [ ] 插入顺序仍是 `ACTION_PASTE` → `ACTION_SET_TEXT`（按选区拼接）→ 剪贴板兜底
 - [ ] 中文文案同步更新 `res/values/strings.xml`，不要硬编码在代码里
-- [ ] 改了 UI 就更新 `docs/preview/` 里的预览图（生成脚本思路见 README）
+- [ ] 改了 UI 就更新 `docs/preview/` 里的预览图
+- [ ] 改了需求 / 版本约定 / 排 bug 流程就更新 [`project/`](project/README.md)（项目文件，与 `app/` 源码分开）
+- [ ] 出包前 `versionName` patch +1、`versionCode` +1，补 [CHANGELOG.md](CHANGELOG.md)
 - [ ] 上游思路有新增就补进 [CREDITS.md](CREDITS.md)
 
 ## 真机测试清单（最缺这个）

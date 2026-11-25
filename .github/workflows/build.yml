@@ -1,7 +1,8 @@
 name: 编译并发布 Release
 
+# 版本约定：每次出包升一个小版本。
+# 唯一版本源是 app/build.gradle.kts 的 versionName，tag = v${versionName}。
 # 只用 GitHub Actions 内置的 GITHUB_TOKEN，不需要个人 PAT。
-# 若确需 PAT，放 Settings -> Secrets，绝不写进仓库文件。
 
 on:
   push:
@@ -23,6 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 读取版本号
+        id: ver
+        run: |
+          VER=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts | head -1)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "本次版本: v$VER"
+
       - name: JDK 17
         uses: actions/setup-java@v4
         with:
@@ -35,7 +43,6 @@ jobs:
         run: |
           SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
           echo "SDK=$SDK"
-          ls "$SDK/platforms" | tail -5
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-34" "build-tools;34.0.0" >/dev/null 2>&1 || true
           ls "$SDK/platforms" | tail -5
@@ -51,13 +58,18 @@ jobs:
           gradle wrapper --gradle-version 8.7 --distribution-type bin
           chmod +x gradlew
 
-      - name: 编译 Debug APK
+      - name: 编译 APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      - name: 整理产物
+      - name: 整理产物 + 校验签名
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk citie.apk
           ls -lh citie.apk
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SIGNER=$(find "$SDK/build-tools" -name apksigner -type f | head -1)
+          if [ -n "$SIGNER" ]; then
+            "$SIGNER" verify --print-certs citie.apk 2>/dev/null | grep -i 'SHA-256' | head -2 || true
+          fi
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
@@ -66,18 +78,27 @@ jobs:
           path: citie.apk
           if-no-files-found: error
 
-      # 打 tag 或手动勾选时，把 APK 挂到 Releases —— 下载工具靠这个识别安装包
+      # 打 tag 或手动勾选 → 把 APK 挂到 Releases，下载工具靠这个识别安装包。
+      # 文件名固定为 citie.apk，保证订阅端不会因为改名而抓不到。
       - name: 发布 Release（含 APK）
         if: startsWith(github.ref, 'refs/tags/v') || inputs.make_release == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [ "$TAG" = "main" ] || [ "$TAG" = "master" ]; then
-            TAG="v0.1.0"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            gh release delete "$TAG" --yes 2>/dev/null || true
+            gh release create "$TAG" citie.apk \
+              --title "词贴 $TAG" \
+              --notes "自动构建 · 固定签名，可直接覆盖安装。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --latest
+          else
+            TAG="v${{ steps.ver.outputs.version }}"
+            gh release delete "$TAG" --yes 2>/dev/null || true
+            # --target 指定当前提交，不 push tag，避免再次触发 tag 工作流造成循环
+            gh release create "$TAG" citie.apk \
+              --target "$GITHUB_SHA" \
+              --title "词贴 $TAG" \
+              --notes "自动构建 · 固定签名，可直接覆盖安装。装完请在系统设置里开启「词贴」无障碍服务。主页面「导出日志」可一键生成 MD 开发者日志。详见仓库 README。" \
+              --latest
           fi
-          gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" citie.apk \
-            --title "词贴 $TAG" \
-            --notes "自动构建。下载 citie.apk 安装后，请在系统设置里开启「词贴」无障碍服务。详见仓库 README。" \
-            --latest
