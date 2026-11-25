@@ -3,6 +3,44 @@
 版本号遵循语义化版本；**每次出包升一个小版本**（patch +1），约定见
 [project/版本与发布.md](project/版本与发布.md)。
 
+## v0.1.4（2026-11-25）
+
+**按真机反馈重设计：纠正上一版三处自作聪明**
+
+1. **「点框内空白收起」→ 改回「点框外任意处收起」**（通用范式）。
+   上一版声称「点框外收起会吃掉点输入框那一下」，**这个判断是错的**：
+   `FLAG_NOT_TOUCH_MODAL` 让窗口外触摸穿透给下层，
+   `FLAG_WATCH_OUTSIDE_TOUCH` 只让本窗口收到一次 `ACTION_OUTSIDE` 通知、**不消费手势**
+   （Android `WindowManager.LayoutParams` 官方文档语义）。现在显式加这两个 flag，
+   输入框/键盘照常响应。
+   - 如实说明代价：点输入框本身也算「框外」，面板会收起；但插入在点 chip 时同步完成，正常流程不受影响。
+2. **「宽度按内容自适应」→ 改回「固定一整排」**（屏宽-32dp）。
+   单条 chip 时上一版框被占满，而收起又要求点框内空白 —— 自相矛盾、根本没地方点。
+   现在与词条数量无关，一条也占完整一排。
+3. **「长按 → 框变大成全文态」→ 改成「两级 + 临时气泡」**。
+   上一版把预览做成了视觉上的第三级，过度设计。现在层级只有 **球 → 一整排标签**；
+   长按 chip 在标签行**上方弹一个独立气泡**显示全文，主框尺寸与内容一动不动。
+   - 气泡是独立 `TYPE_ACCESSIBILITY_OVERLAY` 窗口，带小三角指向被长按的 chip，
+     `ScrollView` 有界高度可滚长文；松手后保留（看得完），点气泡 / 点框外 / 点 chip / 收起时消失。
+   - 气泡不设 `WATCH_OUTSIDE_TOUCH`，避免上层窗口抢走主框的 `ACTION_OUTSIDE`；
+     气泡自身可点，双层窗口下的交互仍然确定。
+
+**主动修的边界问题**
+- 展开动画未结束就点框外：直接落地，不叠加两段 morph 动画。
+- `collapsePanel()` 统一先收气泡，避免主框缩回后气泡孤零零留在屏幕上。
+- 三角横向按 `chip.getLocationOnScreen()` 对准 chip 中心，并 clamp 在气泡内。
+
+**保留**：220/180ms morph、零文字装饰、无 ✕、固定签名、MD 开发者日志。
+
+**日志**
+- 新增 `PANEL outside-tap → 收起`、`bubble show`（含 above/高度/长度）、`bubble dismiss`、
+  `bubble-tap`、`collapse(reason=…)` 的 reason 增加 `outside-tap` / `bubble-tap`。
+
+**工程**
+- `versionCode` 4 → 5，`versionName` 0.1.3 → 0.1.4；签名与包名不变 → **v0.1.3 可直接覆盖装**
+- 新增 `res/layout/overlay_bubble.xml`；`overlay_panel.xml` 去掉预览态控件
+- `docs/preview/ui_review_v5.png` 四态预览；`CREDITS.md` 补气泡上游参考
+
 ## v0.1.3（2026-11-25）
 
 **球 ↔ 框重做（真机截图反馈，按设计判断改过三处）**

@@ -38,6 +38,8 @@
 | [Divyanshverma2804/UtilityBox](https://github.com/Divyanshverma2804/UtilityBox) | 无障碍 + overlay 的工程组织方式 | 仅参考结构 |
 | [EasyFloat](https://github.com/princekin-f/EasyFloat) | 「可拖拽 + 松手贴边」的交互手感 | 未引入依赖，用 `OnTouchListener` 自己写了几十行 |
 | [PRosenb/AdbClipboard](https://github.com/PRosenb/AdbClipboard) | 悬浮球贴边 / 隐藏 / 恢复的交互语义 | 同上，未引入依赖 |
+| [xujiaji/HappyBubble](https://github.com/xujiaji/HappyBubble) | 「长按列表项 → 在项上方弹带小三角的气泡」这个交互范式 | v0.1.4 只借气泡形态与三角指向的做法，用 `TYPE_ACCESSIBILITY_OVERLAY` + `GradientDrawable` 自己写，未引入依赖 |
+| [Android 官方文档：WindowManager.LayoutParams](https://developer.android.com/reference/android/view/WindowManager.LayoutParams) | `FLAG_NOT_TOUCH_MODAL` / `FLAG_WATCH_OUTSIDE_TOUCH` 的语义 | 一手依据：v0.1.4「点框外收起」靠这两个 flag，且**不消费**外部触摸 |
 | [Android 官方文档：AccessibilityService](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService) / [AccessibilityNodeInfo](https://developer.android.com/reference/android/view/accessibility/AccessibilityNodeInfo) | API 语义与常量定义 | 一手依据 |
 
 > 另外，公开介绍里提到的 `jev-chat/jev-chat-jarvis` 用 `ACTION_SET_TEXT` 回填草稿、

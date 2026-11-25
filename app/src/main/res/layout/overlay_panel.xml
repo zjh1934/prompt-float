@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 球 ↔ 框是同一个 View。
-     展开时这个容器以球的 56dp 圆形为起点，用 ValueAnimator 把宽/高/圆角/位置
-     插值到目标尺寸（代码里逐帧改 WindowManager.LayoutParams + GradientDrawable.cornerRadius）。
-     球文字淡出、chips 淡入 —— 视觉上就是「球长大成了框」，二者从不同框并存。
+<!-- 球 ↔ 框是同一个 View（两个层级里的第二级）。
+     展开时这个容器从球的 56dp 圆形，用 ValueAnimator 插值到「固定一整排」的框。
 
      刻意没有：标题、蓝色竖条、收起 ✕、任何解释性文字。
-     收起 = 点框内任意空白处；点某条 chip = 插入并收起。
-     可滑动的暗示由 requiresFadingEdge 的右侧渐隐 + 被裁掉半颗的 chip 提供，不靠文字。 -->
+     收起 = 点框外任意处（ACTION_OUTSIDE，通用范式）；点某条 chip = 插入并收起。
+     宽度固定屏宽-32dp：哪怕只有一条 chip，也是完整一排，不会出现「没地方点」。
+     长按 chip 的全文预览是**另一个临时气泡窗口**，不在这个布局里，不撑大主框、不进第三级。 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/morphRoot"
     android:layout_width="56dp"
@@ -14,7 +13,7 @@
     android:clickable="true"
     android:focusable="false">
 
-    <!-- 球的形态：展开动画里淡出 -->
+    <!-- 球形态：展开动画里淡出 -->
     <TextView
         android:id="@+id/morphBallLabel"
         android:layout_width="match_parent"
@@ -25,7 +24,7 @@
         android:textSize="20sp"
         android:textStyle="bold" />
 
-    <!-- 框的内容：展开动画里淡入；列表态与预览态在这一个容器里切换 -->
+    <!-- 框的内容：展开动画里淡入，永远只有这一排 chips -->
     <FrameLayout
         android:id="@+id/contentRoot"
         android:layout_width="match_parent"
@@ -48,23 +47,5 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
         </HorizontalScrollView>
-
-        <!-- 长按 chip 后原地显示全文；点全文 = 插入，点空白 = 收起 -->
-        <ScrollView
-            android:id="@+id/previewBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fillViewport="false"
-            android:scrollbars="none"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/previewText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:lineSpacingMultiplier="1.3"
-                android:textColor="@color/text_main"
-                android:textSize="13sp" />
-        </ScrollView>
     </FrameLayout>
 </FrameLayout>

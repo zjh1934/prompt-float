@@ -7,7 +7,7 @@
 
   ![license](https://img.shields.io/badge/license-MIT-blue)
   ![platform](https://img.shields.io/badge/Android-8.0%2B-green)
-  ![version](https://img.shields.io/badge/version-v0.1.3-blueviolet)
+  ![version](https://img.shields.io/badge/version-v0.1.4-blueviolet)
   ![deps](https://img.shields.io/badge/第三方依赖-0-orange)
   ![permissions](https://img.shields.io/badge/uses--permission-0-brightgreen)
 
@@ -18,8 +18,8 @@
 AI 对话、微信、浏览器、笔记……任何有输入框的地方。**你的输入法一个字都不用换。**
 
 <div align="center">
-  <img src="docs/preview/ui_review_v4.png" width="100%" alt="球 / 展开中间帧 / 自适应的框 / 长按预览全文" />
-  <br /><sub>球 → 长大成框 → 长按看全文。没有标题、没有 ✕、没有一行解释文字</sub>
+  <img src="docs/preview/ui_review_v5.png" width="100%" alt="球 / 长大中 / 固定一整排 / 长按气泡预览" />
+  <br /><sub>只有两级：球 → 一整排标签。长按弹出的全文气泡是临时浮层，不撑大主框、不进第三级</sub>
 </div>
 
 ---
@@ -33,7 +33,7 @@ https://github.com/zjh1934/prompt-float/releases.atom
 ```
 
 > ⚠️ 说清楚边界：GitHub 原生的 `releases.atom` **只有版本通知条目，不带 APK 附件**
-> （feed 里没有 `<enclosure>`）。也就是说订阅后你会收到「词贴 v0.1.3 发布了」，
+> （feed 里没有 `<enclosure>`）。也就是说订阅后你会收到「词贴 v0.1.4 发布了」，
 > 但**点进去还得自己下安装包**，它不会自动把 APK 抓下来装。
 > 如果你的工具是要从 feed 里直接解析安装包，需要另做一个带 enclosure 的 feed，
 > 开 issue 说一声我加。
@@ -57,7 +57,7 @@ https://github.com/zjh1934/prompt-float/releases
 **软件名 + v版本号 + `.apk`**，例如：
 
 ```
-Citie-v0.1.3.apk
+Citie-v0.1.4.apk
 ```
 
 > ⚠️ 有个平台限制得说清楚：我试过直接叫 **`词贴-v0.1.2.apk`**，但
@@ -77,7 +77,7 @@ Citie-v0.1.3.apk
 > ⚠️ **一次例外**：`v0.1.0` 是加固定签名之前发布的旧随机签名包，
 > **`v0.1.0 → v0.1.1` 这一跳仍需卸载一次**（旧密钥已随 CI runner 销毁，无法补救）。
 > 从 **v0.1.1 往后**所有版本共用同一把签名，永久直接覆盖安装，提示词与授权都保留。
-> 没装过 v0.1.0 的话，直接装最新版 `Citie-v0.1.3.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
+> 没装过 v0.1.0 的话，直接装最新版 `Citie-v0.1.4.apk` 即可。详见 [SECURITY.md](SECURITY.md)。
 
 ---
 
@@ -90,22 +90,26 @@ Citie-v0.1.3.apk
 
 然后：在「提示词」里 ＋ 新增 → 打开任意 AI 对话点一下输入框 → 点悬浮球 → 点一条 → 文字进框。
 
-**交互（v0.1.3）**
+**交互（v0.1.4，按真机反馈重设计）**
 
 | 操作 | 结果 |
 |---|---|
-| 点球 | 球 220ms 长大成框，框里只有一排提示词 |
+| 点球 | 球 220ms 长大成框，**固定一整排**（与词条多少无关） |
 | 点一条 | 插入输入框，框缩回球 |
-| **长按一条** | **同一个框就地变成预览态，显示这一条的全文**（可上下滚动）；点全文即插入，点空白即收起 |
-| 点框内空白 | 框缩回球 |
+| **点框外任意处** | **框缩回球**（通用范式，不再要求点框内空白） |
+| **长按一条** | 在标签行**上方弹一个临时气泡**显示全文，主框一动不动；点气泡或点框外即收起 |
 | 拖球 | 移动，松手贴边；球不会被拖到键盘区 |
 
 刻意没有 ✕ 按钮、没有标题、没有「点一条即插入 / 左右滑动看更多」这类说明文字。
 「可以横滑」由右侧渐隐边缘 + 被裁掉半颗的 chip 暗示。
 
-> ⚠️ **点框外不会收起面板**，这是刻意的：浮窗带 `FLAG_NOT_FOCUSABLE + FLAG_NOT_TOUCH_MODAL`，
-> 框外的触摸要**穿透给输入框和键盘**，否则你想点输入框移一下光标就会被吃掉。
-> 想收起就点框内空白处（框很大，很好点）或直接点一条。
+> **为什么只有一条 chip 也是一整排**：上一版按内容自适应宽度，单条时框被占满，
+> 而收起又要求「点框内空白」——直接自相矛盾、没地方可点。现在宽度固定屏宽-32dp，
+> 一条也占一整排，收起改走「点框外」，两个问题一起没了。
+>
+> ⚠️ 代价（如实说）：**点输入框本身也算「框外」，面板会收起**。但插入是在点 chip 时
+> 同步完成的，正常流程不受影响。技术上用 `FLAG_NOT_TOUCH_MODAL + FLAG_WATCH_OUTSIDE_TOUCH`：
+> 框外触摸**照样穿透给输入框和键盘**，浮窗只收一次 `ACTION_OUTSIDE` 通知、不消费手势。
 
 > 边界：**只填，不发**。不替你点发送、不读输入内容、不联网、无账号、无统计、无广告。
 > App 里**零 `uses-permission`**，连「显示在其他应用上层」都不用申请。
@@ -149,7 +153,7 @@ Citie-v0.1.3.apk
 prompt-float/
 ├── app/                                  ← 软件源代码
 │   ├── src/main/java/com/yuanbao/promptfloat/
-│   │   ├── core/PasteAccessibilityService.kt   ★悬浮球/面板/三级插入
+│   │   ├── core/PasteAccessibilityService.kt   ★球↔框 morph / 气泡预览 / 三级插入
 │   │   ├── core/DevLogger.kt                   ★开发者日志与 MD 导出
 │   │   ├── ui/MainActivity.kt                  主页面（极简）
 │   │   ├── data/PromptRepository.kt            提示词 CRUD / 备份
@@ -186,7 +190,7 @@ cd prompt-float
 gradle wrapper --gradle-version 8.7 --distribution-type bin
 ./gradlew :app:assembleDebug
 # Gradle 原生产物：app/build/outputs/apk/debug/app-debug.apk
-# 发布到 Releases 时 CI 会改名成：Citie-v0.1.3.apk（软件名拉丁化 + v版本号）
+# 发布到 Releases 时 CI 会改名成：Citie-v0.1.4.apk（软件名拉丁化 + v版本号）
 ```
 
 Android Studio（Giraffe+）直接打开根目录也可以。CI 用内置 `GITHUB_TOKEN` 即可，

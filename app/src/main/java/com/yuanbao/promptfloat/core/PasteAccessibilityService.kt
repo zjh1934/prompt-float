@@ -41,10 +41,16 @@ import kotlin.math.abs
  *     把文字插进去。普通 App 拿不到别的 App 的 InputConnection，
  *     所以这一步只能借 AccessibilityService —— 这也是为什么必须让用户手动开一次无障碍。
  *
- * 关键：所有浮窗都带 FLAG_NOT_FOCUSABLE + FLAG_NOT_TOUCH_MODAL。
- * 一旦浮窗抢走焦点，输入框会失焦、键盘收起，findFocus(FOCUS_INPUT) 立刻返回 null；
- * NOT_TOUCH_MODAL 保证「框外的触摸照常穿透给输入框和键盘」—— 这是「不跟输入法抢」的技术保证，
- * 也正因如此：点框外**不会**收起面板（收起靠点框内空白 / 点条目），这是刻意取舍。
+ * ★ 层级（v0.1.4 按真机反馈重设计）：**只有两级**
+ *    球  →  一排提示词标签（固定一整排的主框）
+ *   长按 chip 弹出的全文气泡是「临时浮层」，不改主框、不撑大主框、不构成第三级。
+ *
+ * ★ 收起（v0.1.4 纠正）：**点框外任意处**收起 —— 通用范式。
+ *   FLAG_NOT_TOUCH_MODAL 让窗口外的触摸穿透给下层（输入框/键盘照常响应），
+ *   FLAG_WATCH_OUTSIDE_TOUCH 让本窗口同时收到一次 MotionEvent.ACTION_OUTSIDE 通知，
+ *   它**不消费**这次触摸。上一版说「会吃掉点输入框那一下」是错的，已改。
+ *   代价（如实说）：点输入框本身也算「框外」，面板会收起；但插入是在点 chip 时
+ *   同步完成的，正常流程不受影响。
  *
  * 借鉴来源见 CREDITS.md；核心 API 组合参考 Pster Voice 与 RMBLR 的公开实现：
  *   TYPE_ACCESSIBILITY_OVERLAY + PASTE 优先 + SET_TEXT 兜底 + node.recycle()
@@ -65,8 +71,10 @@ class PasteAccessibilityService : AccessibilityService() {
     private var morphAnimator: ValueAnimator? = null
     private var morphEndAction: (() -> Unit)? = null
     private var animating = false
-    private var previewMode = false
-    private var previewItem: PromptItem? = null
+
+    /** 长按全文预览：独立临时气泡窗口，不属于主框层级 */
+    private var bubbleView: View? = null
+    private var bubbleParams: WindowManager.LayoutParams? = null
 
     private var ballX = 0
     private var ballY = 0
@@ -220,27 +228,23 @@ class PasteAccessibilityService : AccessibilityService() {
         syncPanelPosition()
     }
 
-    // ---------------------------------------------------------------- 球 ↔ 框
+    // ---------------------------------------------------------------- 球 → 框（第二级）
 
     private fun expandPanel() {
         if (panelView != null || animating) return
         val items = repo.list()
         if (items.isEmpty()) {
-            // 空列表不展开一个空框，给一次明确反馈就够了
             DevLogger.i("PANEL", "提示词为空，不展开")
             toast(R.string.panel_empty)
             return
         }
 
         val v = LayoutInflater.from(this).inflate(R.layout.overlay_panel, null) as FrameLayout
-        val ballLabel = v.findViewById<View>(R.id.morphBallLabel)
-        val content = v.findViewById<View>(R.id.contentRoot)
         val chipRow = v.findViewById<HorizontalScrollView>(R.id.chipRow)
         val container = v.findViewById<LinearLayout>(R.id.chipContainer)
-        val previewBox = v.findViewById<ScrollView>(R.id.previewBox)
-        val previewText = v.findViewById<TextView>(R.id.previewText)
+        val contentRoot = v.findViewById<FrameLayout>(R.id.contentRoot)
 
-        // 圆角逐帧插值，所以背景由代码造：球形态是正圆(28dp)，框形态是 16dp 圆角
+        // 圆角逐帧插值：球形态正圆(28dp) → 框形态 16dp 圆角
         val bg = GradientDrawable().apply {
             setColor(Color.argb(248, 255, 255, 255))
             setStroke(dp(1), Color.argb(60, 68, 85, 102))
@@ -269,46 +273,41 @@ class PasteAccessibilityService : AccessibilityService() {
             chip.setOnClickListener {
                 if (animating) return@setOnClickListener
                 DevLogger.d("PANEL", "点选第 $index 条 → 插入并收起")
+                dismissBubble()
                 insertPrompt(item.content)
                 collapsePanel("chip-tap")
             }
-            // 长按 = 就地预览全文（不是弹窗：弹窗要抢焦点/额外权限，跟核心冲突）
+            // 长按 = 在标签行上方弹一个临时气泡看全文。不撑大主框、不进第三级。
             chip.setOnLongClickListener {
                 if (animating) return@setOnLongClickListener true
-                DevLogger.i("PANEL", "长按第 $index 条 → 预览 | 长度=${item.content.length}")
-                openPreview(item, chipRow, previewBox, previewText)
+                DevLogger.i("PANEL", "长按第 $index 条 → 气泡预览 | 长度=${item.content.length}")
+                showBubble(item, chip)
                 true
             }
         }
 
-        // 框内空白 = 缩回球。子 chip / previewText 各自消费点击，不冒泡到这里。
-        // 没有 ✕ 按钮、没有标题、没有说明文字。
-        v.setOnClickListener {
-            if (animating) return@setOnClickListener
-            collapsePanel("tap-blank")
+        // ★ 点框外任意处 → 收起（通用范式）。ACTION_OUTSIDE 不消费触摸，输入框照常响应。
+        v.setOnTouchListener { _, ev ->
+            if (ev.action == MotionEvent.ACTION_OUTSIDE) {
+                DevLogger.i("PANEL", "outside-tap → 收起气泡并缩回球")
+                dismissBubble()
+                collapsePanel("outside-tap")
+                true
+            } else false
         }
-        previewText.setOnClickListener {
-            if (animating) return@setOnClickListener
-            DevLogger.i("PANEL", "预览态点全文 → 插入并收起")
-            previewItem?.let { insertPrompt(it.content) }
-            collapsePanel("preview-tap")
-        }
+        // 点框内空白：只收气泡，不收主框（因为这不是「外部」）
+        val blankTap = View.OnClickListener { dismissBubble() }
+        v.setOnClickListener(blankTap)
+        contentRoot.setOnClickListener(blankTap)
+        chipRow.setOnClickListener(blankTap)
 
         val screenW = resources.displayMetrics.widthPixels
-        val screenH = resources.displayMetrics.heightPixels
         ballX = ballParams?.x ?: dp(16)
         ballY = ballParams?.y ?: dp(260)
-        previewMode = false
-        previewItem = null
 
-        // 宽度按内容自适应：一条 chip 时是刚好的小框，多条才变宽。零空白、零解释文字。
-        val paint = TextView(this).paint
-        paint.textSize = 14f * resources.displayMetrics.scaledDensity
-        var chipsW = 0
-        items.forEach { chipsW += (paint.measureText(it.title) + dp(28) + dp(8)).toInt() }
-        targetW = (chipsW + dp(20))
-            .coerceAtLeast(dp(56))
-            .coerceAtMost((screenW - dp(32)).coerceAtLeast(dp(56)))
+        // ★ 固定一整排：与词条数量无关。只有一条 chip 时也是完整一排，
+        //   右侧留白由「点框外收起」承担，不再需要「点框内空白」这种脆弱交互。
+        targetW = (screenW - dp(32)).coerceAtLeast(dp(56))
         targetH = dp(58)
         targetX = ballX.coerceAtMost(screenW - targetW - dp(8)).coerceAtLeast(dp(8))
         targetY = computePanelY(targetH)
@@ -324,44 +323,122 @@ class PasteAccessibilityService : AccessibilityService() {
         panelView = v
         panelParams = p
 
-        // ★ 球和框不再并存：球 View 立刻隐藏，同一个容器从 56dp 圆形长大成框
+        // 球和框不再并存：球 View 立刻隐藏，同一个容器从 56dp 圆形长大成框
         ballView?.visibility = View.INVISIBLE
 
         DevLogger.i(
             "PANEL",
-            "morph expand | 条目=${items.size} 目标 ${targetW}x${targetH} @($targetX,$targetY)"
+            "morph expand | 条目=${items.size} 固定一排 ${targetW}x${targetH} @($targetX,$targetY)"
         )
         animateMorph(ballState(), panelState(), 220L)
     }
 
-    /** 长按 chip：同一个框原地变成预览态，全文可滚动；点全文插入、点空白收起 */
-    private fun openPreview(
-        item: PromptItem,
-        chipRow: HorizontalScrollView,
-        previewBox: ScrollView,
-        previewText: TextView
-    ) {
-        val v = panelView ?: return
-        val p = panelParams ?: return
-        previewItem = item
-        previewMode = true
-        previewText.text = item.content
-        chipRow.visibility = View.GONE
-        previewBox.visibility = View.VISIBLE
+    // ---------------------------------------------------------------- 长按气泡（临时浮层）
 
+    /**
+     * 长按 chip → 在标签行**上方**弹一个独立气泡，显示这条提示词全文。
+     * 主框尺寸、内容、层级都不变，所以是「两级 + 一个看一眼就走的浮层」，不是三级。
+     * 松手后气泡保留（长文看得完）；点框外 / 点 chip / 收起面板时一并消失。
+     */
+    private fun showBubble(item: PromptItem, chip: View) {
+        dismissBubble()
+        val p = panelParams ?: return
         val screenW = resources.displayMetrics.widthPixels
         val screenH = resources.displayMetrics.heightPixels
-        targetW = screenW - dp(32)
-        targetH = minOf(screenH / 2, dp(320))
-        // 给 ScrollView 一个有界高度，长提示词才能在框内滚动而不是把框撑到整屏
-        previewBox.layoutParams.height = targetH - dp(20)
-        previewBox.requestLayout()
-        targetX = ballX.coerceAtMost(screenW - targetW - dp(8)).coerceAtLeast(dp(8))
-        targetY = computePanelY(targetH)
 
-        DevLogger.i("PANEL", "preview open | 长度=${item.content.length} → ${targetW}x${targetH}")
-        animateMorph(currentState(v, p), panelState(), 200L)
+        val b = LayoutInflater.from(this).inflate(R.layout.overlay_bubble, null) as LinearLayout
+        val card = b.findViewById<LinearLayout>(R.id.bubbleCard)
+        val scroll = b.findViewById<ScrollView>(R.id.bubbleScroll)
+        val text = b.findViewById<TextView>(R.id.bubbleText)
+        val arrow = b.findViewById<View>(R.id.bubbleArrow)
+
+        text.text = item.content
+        val cardBg = GradientDrawable().apply {
+            setColor(Color.argb(252, 255, 255, 255))
+            setStroke(dp(1), Color.argb(70, 68, 85, 102))
+            cornerRadius = dp(12).toFloat()
+        }
+        card.background = cardBg
+        val arrowBg = GradientDrawable().apply {
+            setColor(Color.argb(252, 255, 255, 255))
+            cornerRadius = dp(2).toFloat()
+        }
+        arrow.background = arrowBg
+
+        // 给 ScrollView 有界高度：长提示词在气泡内滚动，不会把气泡撑到整屏
+        val maxBubbleH = minOf(screenH / 3, dp(240))
+        scroll.layoutParams = scroll.layoutParams.apply { height = maxBubbleH - dp(24) }
+        val bubbleH = maxBubbleH + dp(12)
+
+        val loc = IntArray(2)
+        chip.getLocationOnScreen(loc)
+        val chipTop = loc[1]
+        val chipBottom = chipTop + chip.height
+        val chipCenterX = loc[0] + chip.width / 2
+
+        val yAbove = chipTop - bubbleH - dp(8)
+        val above = yAbove >= dp(8)
+        val bubbleY = if (above) {
+            yAbove
+        } else {
+            // 上方放不下就落到主框下方（不压住主框）
+            maxOf(chipBottom + dp(8), targetY + targetH + dp(8))
+        }
+        if (!above) {
+            // 气泡在下：小三角要放到卡片上面
+            b.removeView(arrow)
+            b.addView(arrow, 0)
+            arrow.rotation = 45f
+        }
+
+        // 三角横向对准被长按的那条 chip
+        arrow.translationX = (chipCenterX - (targetX + targetW / 2))
+            .toFloat()
+            .coerceIn((-targetW / 2 + dp(20)).toFloat(), (targetW / 2 - dp(20)).toFloat())
+
+        val bp = overlayParams().apply {
+            width = targetW
+            height = WindowManager.LayoutParams.WRAP_CONTENT
+            x = targetX
+            y = bubbleY
+            // 气泡不监听外部事件：让 ACTION_OUTSIDE 归主框统一处理，
+            // 否则上层气泡可能把「点框外」这次通知吃掉。
+            flags = flags and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv()
+        }
+        runCatching { wm.addView(b, bp) }
+            .onFailure { DevLogger.e("PANEL", "addView 气泡失败", it); return }
+        bubbleView = b
+        bubbleParams = bp
+        // 气泡自身可点：点它 = 收气泡 + 缩回球。
+        // 这样即便双层窗口下 ACTION_OUTSIDE 派发有歧义，交互也确定；
+        // NOT_TOUCH_MODAL 仍保证「气泡外」的触摸穿透给输入框，同时主框收 ACTION_OUTSIDE。
+        val bubbleTap = View.OnClickListener {
+            DevLogger.i("PANEL", "bubble-tap → 收起")
+            dismissBubble()
+            collapsePanel("bubble-tap")
+        }
+        b.setOnClickListener(bubbleTap)
+        card.setOnClickListener(bubbleTap)
+        scroll.setOnClickListener(bubbleTap)
+        text.setOnClickListener(bubbleTap)
+
+        b.alpha = 0f
+        b.animate().alpha(1f).setDuration(120L).start()
+        DevLogger.i(
+            "PANEL",
+            "bubble show | 长度=${item.content.length} above=$above y=$bubbleY 高=$bubbleH"
+        )
     }
+
+    private fun dismissBubble() {
+        val b = bubbleView ?: return
+        runCatching { wm.removeViewImmediate(b) }
+        bubbleView = null
+        bubbleParams = null
+        DevLogger.i("PANEL", "bubble dismiss")
+    }
+
+    // ---------------------------------------------------------------- 收起
 
     /** reason 写进日志，一眼看出是谁把面板收掉的 */
     private fun collapsePanel(reason: String = "unspecified") {
@@ -371,7 +448,13 @@ class PasteAccessibilityService : AccessibilityService() {
             DevLogger.d("PANEL", "collapse($reason) 跳过：面板本来就没开")
             return
         }
+        dismissBubble()
         DevLogger.i("PANEL", "morph collapse(reason=$reason)")
+        // 展开动画还没结束就收到收起指令（快速点框外）：直接落地，不叠加两段动画
+        if (animating) {
+            collapsePanelNow(reason + "-skip-anim")
+            return
+        }
         animateMorph(currentState(v, p), ballState(), 180L) {
             collapsePanelNow(reason + "-done")
         }
@@ -384,15 +467,16 @@ class PasteAccessibilityService : AccessibilityService() {
         morphEndAction = null
         old?.cancel()
         animating = false
+        dismissBubble()
         panelView?.let { runCatching { wm.removeViewImmediate(it) } }
         panelView = null
         panelParams = null
         morphBg = null
-        previewMode = false
-        previewItem = null
         ballView?.visibility = View.VISIBLE
         DevLogger.i("PANEL", "collapse now(reason=$reason)，已恢复球形")
     }
+
+    // ---------------------------------------------------------------- morph 动画
 
     private fun ballState() = MorphState(
         dp(56), dp(56), ballX, ballY, dp(28).toFloat(), 1f, 0f
@@ -416,7 +500,7 @@ class PasteAccessibilityService : AccessibilityService() {
     /**
      * 单容器真 morph：逐帧改 WindowManager.LayoutParams 的宽/高/位置，
      * 同时插值 GradientDrawable 圆角与两层内容的 alpha。球长大成框、框缩回球。
-     * 220ms（收起 180ms）—— 不用 1 秒，瞬时操作拖久了只会觉得卡。
+     * 220ms（收起 180ms）—— 高频瞬时操作，1 秒只会觉得卡。
      */
     private fun animateMorph(from: MorphState, to: MorphState, duration: Long, onEnd: (() -> Unit)? = null) {
         val v = panelView ?: return
@@ -424,8 +508,6 @@ class PasteAccessibilityService : AccessibilityService() {
         val bg = morphBg ?: return
         val ballLabel = v.findViewById<View>(R.id.morphBallLabel)
         val content = v.findViewById<View>(R.id.contentRoot)
-        morphAnimator?.cancel()
-        animating = true
 
         // 先撤掉旧动画与其回调：ValueAnimator.cancel() 也会回调 onAnimationEnd，
         // 若不清空，收起动画的 onEnd 可能在服务销毁时被重复执行（递归 removeView）。
@@ -464,7 +546,7 @@ class PasteAccessibilityService : AccessibilityService() {
 
     private fun lerp(a: Int, b: Int, t: Float): Int = (a + (b - a) * t).toInt()
 
-    /** 球在下半屏时把框翻到球上方，按实际目标高度算，不再用写死的 150dp */
+    /** 球在下半屏时把框翻到球上方，按实际目标高度算 */
     private fun computePanelY(panelH: Int): Int {
         val screenH = resources.displayMetrics.heightPixels
         val below = ballY + dp(56) + dp(6)
@@ -489,9 +571,12 @@ class PasteAccessibilityService : AccessibilityService() {
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
         // NOT_FOCUSABLE：不抢输入框焦点、不收起键盘
-        // NOT_TOUCH_MODAL：框外触摸穿透给输入框/键盘，因此「点框外」不会收起面板
+        // NOT_TOUCH_MODAL：窗口外的触摸穿透给下层（输入框/键盘照常响应）
+        // WATCH_OUTSIDE_TOUCH：同时收到一次 ACTION_OUTSIDE 通知，用来「点框外收起」。
+        //   它不消费这次触摸 —— 这正是上一版判断错的地方。
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         PixelFormat.TRANSLUCENT
     ).apply {

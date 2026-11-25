@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 长按 chip 的全文预览气泡。
+     这是**独立的临时 overlay 窗口**，浮在 chip 行上方，不改主框尺寸、不替换主框内容，
+     所以层级始终是「球 → 一排标签」两级，气泡只是看一眼就走的浮层。
+
+     纯展示：isClickable=false，NOT_TOUCH_MODAL 让触摸穿透，点框外由主框的
+     ACTION_OUTSIDE 统一收走气泡 + 缩回球。松手后气泡保留，长文才看得完。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bubbleRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <!-- 气泡在上时：卡片在上、小三角在下；气泡在下时由代码反序 addView -->
+    <LinearLayout
+        android:id="@+id/bubbleCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <ScrollView
+            android:id="@+id/bubbleScroll"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fillViewport="false"
+            android:scrollbars="none">
+
+            <TextView
+                android:id="@+id/bubbleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingMultiplier="1.35"
+                android:textColor="@color/text_main"
+                android:textSize="13sp" />
+        </ScrollView>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/bubbleArrow"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="center_horizontal"
+        android:rotation="45" />
+</LinearLayout>
